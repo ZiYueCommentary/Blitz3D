@@ -245,25 +245,21 @@ void Editor::setName(const std::string& n) {
 	name = n;
 }
 
-bool Editor::setText(std::istream& in) {
+bool Editor::setText(istream& in) {
 	fmtBusy = true;
-	EDITSTREAM es;
-	es.dwCookie = (DWORD)this;
-	es.dwError = 0;
-	es.pfnCallback = streamIn;
-	is_line = "{\\rtf1{\\colortbl;" + rtfbgr(prefs.rgb_string) + rtfbgr(prefs.rgb_ident) +
-		rtfbgr(prefs.rgb_keyword) + rtfbgr(prefs.rgb_comment) + rtfbgr(prefs.rgb_digit) +
-		rtfbgr(prefs.rgb_default) + "}";
-	int tabTwips = 1440 * 8 / GetDeviceCaps(::GetDC(0), LOGPIXELSX) * prefs.edit_tabs;
-	for(int k = 0; k < MAX_TAB_STOPS; ++k) is_line += "\\tx" + itoa(k * tabTwips) + ' ';
-	is_stream = &in;
-	is_curs = is_linenum = 0;
-	funcList.clear();
-	typeList.clear();
-	labsList.clear();
-	editCtrl.StreamIn(SF_RTF, es);
+	std::stringstream buffer;
+	buffer << in.rdbuf(); 
+
+	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+	std::wstring wideText = converter.from_bytes(buffer.str());
+
+	CString cstrText(wideText.c_str());
+
+	editCtrl.SetWindowText(cstrText);
+
 	fmtBusy = false;
-	return es.dwError == 0;
+	caret();
+	return true; 
 }
 
 void Editor::setModified(bool n) {
@@ -280,13 +276,20 @@ std::string Editor::getName()const {
 	return name;
 }
 
-bool Editor::getText(std::ostream& out) {
+bool Editor::getText(ostream& out) {
 	fixFmt(true);
+
+	std::ostringstream utf8Stream;
+
 	EDITSTREAM es;
-	es.dwCookie = (DWORD)&out;
+	es.dwCookie = (DWORD)&utf8Stream;
 	es.dwError = 0;
 	es.pfnCallback = streamOut;
+
 	editCtrl.StreamOut(SF_TEXT, es);
+
+	out << utf8Stream.str();
+
 	return es.dwError == 0;
 }
 

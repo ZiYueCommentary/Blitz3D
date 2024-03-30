@@ -126,6 +126,33 @@ int MainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct) {
 	return 0;
 }
 
+std::wstring MainFrame::utf8_to_wchar(const std::string& str)
+{
+	int len = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
+	wchar_t* wstr = new wchar_t[len];
+	MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, wstr, len);
+	std::wstring result(wstr);
+	delete[] wstr;
+	return result;
+}
+
+CString MainFrame::ANSItoUTF8(const CStringA& str) {
+	int len = MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0);
+	wchar_t* wstr = new wchar_t[len];
+	MultiByteToWideChar(CP_ACP, 0, str, -1, wstr, len);
+
+	len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
+	char* utf8str = new char[len];
+	WideCharToMultiByte(CP_UTF8, 0, wstr, -1, utf8str, len, NULL, NULL);
+
+	CString result(utf8str);
+
+	delete[] wstr;
+	delete[] utf8str;
+
+	return result;
+}
+
 void MainFrame::setState(int n) {
 	state = n;
 	SendMessageToDescendants(WM_IDLEUPDATECMDUI, (WPARAM)TRUE, 0, TRUE, TRUE);
@@ -277,16 +304,28 @@ SourceFile* MainFrame::sourceFile(const char* file) {
 		ES_NOHIDESEL | ES_MULTILINE | ES_AUTOHSCROLL | ES_AUTOVSCROLL,
 		CRect(0, 0, 0, 0), &tabber, 1);
 
-	if(FILE* f = fopen(file, "rb")) {
+	if (FILE* f = fopen(ANSItoUTF8(file), "rb")) {
 		fseek(f, 0, SEEK_END);
-		int sz = ftell(f);
+		long fsize = ftell(f);
 		fseek(f, 0, SEEK_SET);
-		char* buf = new char[sz + 1];
-		fread(buf, sz, 1, f);
-		buf[sz] = 0;
-		t->ReplaceSel(buf);
-		delete[] buf;
+
+		char* buf = new char[fsize + 1];
+		fread(buf, 1, fsize, f);
+		buf[fsize] = '\0';
+
 		fclose(f);
+		
+		// Convert UTF-8 to wide characters
+		int len = MultiByteToWideChar(CP_UTF8, 0, buf, -1, NULL, 0);
+		wchar_t* wbuf = new wchar_t[len];
+		MultiByteToWideChar(CP_UTF8, 0, buf, -1, wbuf, len);
+
+		CString text(wbuf);
+
+		t->SetWindowText(text);
+
+		delete[] buf;
+		delete[] wbuf;
 	}
 
 	file_tabs.insert(std::make_pair(file, tab));
