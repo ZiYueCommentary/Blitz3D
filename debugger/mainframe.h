@@ -45,6 +45,8 @@ public:
 	DECLARE_MESSAGE_MAP()
 
 	afx_msg int  OnCreate(LPCREATESTRUCT lpCreateStruct);
+	std::wstring utf8_to_wchar(const std::string& str);
+	CString ANSItoUTF8(const CStringA& str);
 	afx_msg void OnSize(UINT type, int w, int h);
 	afx_msg void OnClose();
 
