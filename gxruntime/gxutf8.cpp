@@ -118,6 +118,22 @@ std::string UTF8::convertToAnsi(const std::string& str) {
 	return converted;
 }
 
+void UTF8::ANSItoUTF8(CString& strAnsi) {
+	UINT nLen = MultiByteToWideChar(GetACP(), NULL, strAnsi, -1, NULL, NULL);
+	WCHAR* wszBuffer = new WCHAR[nLen + 1];
+	nLen = MultiByteToWideChar(GetACP(), NULL, strAnsi, -1, wszBuffer, nLen);
+	wszBuffer[nLen] = 0;
+
+	nLen = WideCharToMultiByte(CP_UTF8, NULL, wszBuffer, -1, NULL, NULL, NULL, NULL);
+	CHAR* szBuffer = new CHAR[nLen + 1];
+	nLen = WideCharToMultiByte(CP_UTF8, NULL, wszBuffer, -1, szBuffer, nLen, NULL, NULL);
+	szBuffer[nLen] = 0;
+
+	strAnsi = szBuffer;
+	delete[] wszBuffer;
+	delete[] szBuffer;
+}
+
 int UTF8::length(const std::string& str) {
 	int utf8Len = 0;
 	for (int i = 0; i < str.size();) {

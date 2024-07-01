@@ -233,9 +233,12 @@ int bbCountGfxDrivers()
 BBStr* bbGfxDriverName(int n)
 {
 	debugDriver(n, "GfxDriverName");
-	std::string t; int caps;
+	std::string t;
+	int caps;
 	gx_runtime->graphicsDriverInfo(n - 1, &t, &caps);
-	return new BBStr(t);
+	CString str(t.c_str());
+	UTF8::ANSItoUTF8(str); // Convert t from ANSI to UTF-8
+	return new BBStr(str);
 }
 
 void  bbSetGfxDriver(int n)
