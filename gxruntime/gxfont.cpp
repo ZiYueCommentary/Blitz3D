@@ -61,7 +61,7 @@ void gxFont::renderAtlas(int chr) {
 	if(startChr < 0) { startChr = 0; }
 	int endChr = startChr + 2048;
 
-	bool* buffer = nullptr;
+	unsigned char* buffer = nullptr;
 	int x = -1; int y = -1;
 	int maxHeight = -1;
 	for(int i = startChr; i < endChr; i++) {
@@ -81,10 +81,8 @@ void gxFont::renderAtlas(int chr) {
 
 				if(glyphWidth > 0 && glyphHeight > 0) {
 					if(buffer == nullptr) {
-						buffer = new bool[atlasDims * atlasDims];
-						for(int j = 0; j < atlasDims * atlasDims; j++) {
-							buffer[j] = false;
-						}
+						buffer = new unsigned char[atlasDims * atlasDims];
+						memset(buffer, 0, atlasDims * atlasDims);
 						x = 1; y = 1; maxHeight = 0;
 					}
 
