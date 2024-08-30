@@ -70,10 +70,10 @@ void gxFont::renderAtlas(int chr) {
 			long glyphIndex = FT_Get_Char_Index(freeTypeFace, i);
 			FT_Load_Glyph(freeTypeFace,
 				(FT_UInt)glyphIndex,
-				FT_LOAD_TARGET_MONO);
+				FT_LOAD_RENDER);
 			if(glyphIndex != 0) {
 				FT_Render_Glyph(freeTypeFace->glyph,
-					FT_RENDER_MODE_MONO);
+					FT_RENDER_MODE_NORMAL);
 				unsigned char* glyphBuffer = freeTypeFace->glyph->bitmap.buffer;
 				int glyphPitch = freeTypeFace->glyph->bitmap.pitch;
 				int glyphWidth = freeTypeFace->glyph->bitmap.width;
