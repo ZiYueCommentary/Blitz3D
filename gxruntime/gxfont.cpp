@@ -96,13 +96,10 @@ void gxFont::renderAtlas(int chr) {
 					}
 					if(glyphHeight > maxHeight) maxHeight = glyphHeight;
 
-					int bitPitch = glyphPitch * 8;
-					for(int j = 0; j < glyphPitch * glyphHeight; j++) {
-						for(int k = 0; k < 8; k++) {
-							if((j * 8 + k) % bitPitch >= glyphWidth) continue;
-							int bufferPos = x + y * atlasDims;
-							bufferPos += (j * 8 + k) % bitPitch + ((j / glyphPitch) * atlasDims);
-							buffer[bufferPos] = (glyphBuffer[j] & (1 << (7 - k))) > 0;
+					for (int row = 0; row < glyphHeight; row++) {
+						for (int col = 0; col < glyphWidth; col++) {
+							int bufferPos = (x + col) + (y + row) * atlasDims;
+							buffer[bufferPos] = glyphBuffer[col + row * glyphPitch];
 						}
 					}
 
@@ -142,8 +139,17 @@ void gxFont::renderAtlas(int chr) {
 		gxCanvas* newAtlas = graphics->createCanvas(atlasDims, atlasDims, 0);
 		newAtlas->lock();
 		for(int y = 0; y < atlasDims; y++) {
-			for(int x = 0; x < atlasDims; x++)
-				newAtlas->setPixelFast(x, y, buffer[x + (y * atlasDims)] ? opaquePixel : transparentPixel);
+			for(int x = 0; x < atlasDims; x++) {
+				int alpha = buffer[x + (y * atlasDims)];
+				int color = (alpha << 16) | (alpha << 8) | alpha; // could be better :/
+
+				if(alpha > 0) {
+					newAtlas->setPixelFast(x, y, color);
+				}
+				else {
+					newAtlas->setPixelFast(x, y, transparentPixel);
+				}
+			}
 		}
 		newAtlas->unlock();
 		newAtlas->setMask(0xffffff);
