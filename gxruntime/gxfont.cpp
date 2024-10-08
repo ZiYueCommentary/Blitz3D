@@ -61,7 +61,7 @@ void gxFont::renderAtlas(int chr) {
 	if(startChr < 0) { startChr = 0; }
 	int endChr = startChr + 2048;
 
-	bool* buffer = nullptr;
+	unsigned char* buffer = nullptr;
 	int x = -1; int y = -1;
 	int maxHeight = -1;
 	for(int i = startChr; i < endChr; i++) {
@@ -70,10 +70,10 @@ void gxFont::renderAtlas(int chr) {
 			long glyphIndex = FT_Get_Char_Index(freeTypeFace, i);
 			FT_Load_Glyph(freeTypeFace,
 				(FT_UInt)glyphIndex,
-				FT_LOAD_TARGET_MONO);
+				FT_LOAD_RENDER);
 			if(glyphIndex != 0) {
 				FT_Render_Glyph(freeTypeFace->glyph,
-					FT_RENDER_MODE_MONO);
+					FT_RENDER_MODE_NORMAL);
 				unsigned char* glyphBuffer = freeTypeFace->glyph->bitmap.buffer;
 				int glyphPitch = freeTypeFace->glyph->bitmap.pitch;
 				int glyphWidth = freeTypeFace->glyph->bitmap.width;
@@ -81,10 +81,8 @@ void gxFont::renderAtlas(int chr) {
 
 				if(glyphWidth > 0 && glyphHeight > 0) {
 					if(buffer == nullptr) {
-						buffer = new bool[atlasDims * atlasDims];
-						for(int j = 0; j < atlasDims * atlasDims; j++) {
-							buffer[j] = false;
-						}
+						buffer = new unsigned char[atlasDims * atlasDims];
+						memset(buffer, 0, atlasDims * atlasDims);
 						x = 1; y = 1; maxHeight = 0;
 					}
 
@@ -98,13 +96,10 @@ void gxFont::renderAtlas(int chr) {
 					}
 					if(glyphHeight > maxHeight) maxHeight = glyphHeight;
 
-					int bitPitch = glyphPitch * 8;
-					for(int j = 0; j < glyphPitch * glyphHeight; j++) {
-						for(int k = 0; k < 8; k++) {
-							if((j * 8 + k) % bitPitch >= glyphWidth) continue;
-							int bufferPos = x + y * atlasDims;
-							bufferPos += (j * 8 + k) % bitPitch + ((j / glyphPitch) * atlasDims);
-							buffer[bufferPos] = (glyphBuffer[j] & (1 << (7 - k))) > 0;
+					for (int row = 0; row < glyphHeight; row++) {
+						for (int col = 0; col < glyphWidth; col++) {
+							int bufferPos = (x + col) + (y + row) * atlasDims;
+							buffer[bufferPos] = glyphBuffer[col + row * glyphPitch];
 						}
 					}
 
@@ -144,8 +139,17 @@ void gxFont::renderAtlas(int chr) {
 		gxCanvas* newAtlas = graphics->createCanvas(atlasDims, atlasDims, 0);
 		newAtlas->lock();
 		for(int y = 0; y < atlasDims; y++) {
-			for(int x = 0; x < atlasDims; x++)
-				newAtlas->setPixelFast(x, y, buffer[x + (y * atlasDims)] ? opaquePixel : transparentPixel);
+			for(int x = 0; x < atlasDims; x++) {
+				int alpha = buffer[x + (y * atlasDims)];
+				int color = (alpha << 16) | (alpha << 8) | alpha; // could be better :/
+
+				if(alpha > 0) {
+					newAtlas->setPixelFast(x, y, color);
+				}
+				else {
+					newAtlas->setPixelFast(x, y, transparentPixel);
+				}
+			}
 		}
 		newAtlas->unlock();
 		newAtlas->setMask(0xffffff);
