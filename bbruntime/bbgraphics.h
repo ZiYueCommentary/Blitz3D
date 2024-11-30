@@ -73,7 +73,7 @@ BBStr* bbConvertToANSI(BBStr* str);
 BBStr* bbConvertToUTF8(BBStr* str);
 
 //font functions
-gxFont* bbLoadFont(BBStr* name, int height);
+gxFont* bbLoadFont(BBStr* name, int height, bool bold, bool italic, bool underlined);
 void	 bbFreeFont(gxFont* f);
 void	 bbSetFont(gxFont* f);
 int		 bbFontWidth();

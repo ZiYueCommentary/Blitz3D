@@ -9,11 +9,15 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <freetype/ftsynth.h>
 
-gxFont::gxFont(FT_Library ftLibrary, gxGraphics* gfx, const std::string& fn, int h) {
+gxFont::gxFont(FT_Library ftLibrary, gxGraphics* gfx, const std::string& fn, int h, bool bold, bool italic, bool underlined) {
 	graphics = gfx;
 	filename = fn;
 	height = h;
+	this->bold = bold;
+	this->italic = italic;
+	this->underlined = underlined;
 
 	if (FT_New_Face(ftLibrary,
 		filename.c_str(),
@@ -75,6 +79,16 @@ void gxFont::renderAtlas(int chr) {
 				(FT_UInt)glyphIndex,
 				FT_LOAD_TARGET_MONO);
 			if(glyphIndex != 0) {
+				if (bold)
+				{
+					FT_GlyphSlot_Embolden(freeTypeFace->glyph);
+				}
+
+				if (italic)
+				{
+					FT_GlyphSlot_Oblique(freeTypeFace->glyph);
+				}
+
 				FT_Render_Glyph(freeTypeFace->glyph,
 					FT_RENDER_MODE_MONO);
 				unsigned char* glyphBuffer = freeTypeFace->glyph->bitmap.buffer;
@@ -196,6 +210,11 @@ void gxFont::render(gxCanvas* dest, unsigned color_argb, int x, int y, const std
 		i += codepointLen;
 	}
 
+	if (underlined)
+	{
+		tempCanvas->rect(x, static_cast<int>(getBaselinePosition() + getUnderlinePosition()), width, max(1, static_cast<int>(getUnderlineThickness())), true);
+	}
+
 	dest->blit(x, y - glyphRenderOffset, tempCanvas, 0, 0, width, tCanvasHeight, false);
 }
 
@@ -256,4 +275,19 @@ int gxFont::getWidth(const std::string& text) {
 
 bool gxFont::isPrintable(int chr)const {
 	return glyphData.find(chr) != glyphData.end();
+}
+
+float gxFont::getBaselinePosition() const
+{
+	return static_cast<float>(freeTypeFace->size->metrics.ascender) / float{1 << 6};
+}
+
+float gxFont::getUnderlinePosition()const
+{
+	return -static_cast<float>(FT_MulFix(freeTypeFace->underline_position, freeTypeFace->size->metrics.y_scale)) / float{1 << 6};
+}
+
+float gxFont::getUnderlineThickness()const
+{
+	return max(1.0f, static_cast<float>(FT_MulFix(freeTypeFace->underline_thickness, freeTypeFace->size->metrics.y_scale)) / float{1 << 6});
 }

@@ -6,6 +6,7 @@
 #include FT_FREETYPE_H
 #include <vector>
 #include <map>
+#include <freetype/ftstroke.h>
 
 class gxCanvas;
 class gxGraphics;
@@ -14,7 +15,7 @@ typedef IDirectDrawSurface7 ddSurf;
 
 class gxFont {
 public:
-	gxFont(FT_Library ftLibrary, gxGraphics* gfx, const std::string& fn, int h);
+	gxFont(FT_Library ftLibrary, gxGraphics* gfx, const std::string& fn, int h, bool bold = false, bool italic = false, bool underlined = false);
 	~gxFont();
 
 	void render(gxCanvas* dest, unsigned color_argb, int x, int y, const std::string& t);
@@ -37,8 +38,14 @@ public:
 		FONT_ITALIC = 2,
 		FONT_UNDERLINE = 4 //TODO: remove? who actually wants this
 	};
+
+	bool bold;
+	bool italic;
+	bool underlined;
 private:
-	gxFont();
+	float getBaselinePosition()const;
+	float getUnderlinePosition()const;
+	float getUnderlineThickness()const;
 
 	int maxWidth = 0;
 	int glyphHeight = 0;

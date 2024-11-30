@@ -732,8 +732,8 @@ void bbCopyRectStretch(int sx, int sy, int w, int h, int dx, int dy, int dw, int
 }
 
 
-gxFont* bbLoadFont(BBStr* name, int height) {
-    gxFont* font = gx_graphics->loadFont(*name, height);
+gxFont* bbLoadFont(BBStr* name, int height, bool bold, bool italic, bool underlined) {
+    gxFont* font = gx_graphics->loadFont(*name, height, bold, italic, underlined);
     delete name;
     return font;
 }
@@ -1510,7 +1510,7 @@ void graphics_link(void (*rtSym)(const char* sym, void* pc))
 
 
     //fonts
-    rtSym("%LoadFont$fontname%height=12", bbLoadFont);
+    rtSym("%LoadFont$fontname%height=12%bold=0%italic=0%underlined=0", bbLoadFont);
     rtSym("%CurrentFont", bbGetFont);
     rtSym("FreeFont%font", bbFreeFont);
     rtSym("%FontWidth", bbFontWidth);

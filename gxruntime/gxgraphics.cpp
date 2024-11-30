@@ -243,7 +243,7 @@ int gxGraphics::getDepth()const {
 	return front_canvas->getDepth();
 }
 
-gxFont* gxGraphics::loadFont(std::string f, int height) {
+gxFont* gxGraphics::loadFont(std::string f, int height, bool bold, bool italic, bool underlined) {
 	std::string t;
 	int n = f.find('.');
 	if (n == std::string::npos) {
@@ -255,7 +255,7 @@ gxFont* gxGraphics::loadFont(std::string f, int height) {
 		t = f;
 	}
 
-	gxFont* newFont = new gxFont(ftLibrary, this, f, height);
+	gxFont* newFont = new gxFont(ftLibrary, this, f, height, bold, italic, underlined);
 	font_set.emplace(newFont);
 	return newFont;
 }
