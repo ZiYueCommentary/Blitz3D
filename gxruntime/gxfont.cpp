@@ -212,7 +212,7 @@ void gxFont::render(gxCanvas* dest, unsigned color_argb, int x, int y, const std
 
 	if (underlined)
 	{
-		tempCanvas->rect(x, static_cast<int>(getBaselinePosition() + getUnderlinePosition()), width, max(1, static_cast<int>(getUnderlineThickness())), true);
+		tempCanvas->rect(0, static_cast<int>(getBaselinePosition() + getUnderlinePosition()), width, max(1, static_cast<int>(getUnderlineThickness())), true);
 	}
 
 	dest->blit(x, y - glyphRenderOffset, tempCanvas, 0, 0, width, tCanvasHeight, false);
