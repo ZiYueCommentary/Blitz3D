@@ -6,7 +6,6 @@
 #include FT_FREETYPE_H
 #include <vector>
 #include <map>
-#include <freetype/ftstroke.h>
 
 class gxCanvas;
 class gxGraphics;
