@@ -40,7 +40,7 @@ public:
 	void setAnimation(const Animation& t) { anim = t; }
 	void setAnimator(Animator* t);
 
-	Channel emitSound(Sound* sound);
+	gxChannel* emitSound(gxAudio::Sound* sound);
 
 	//overridables!
 	virtual bool collide(const Line& line, float radius, ::Collision* curr_coll, const Transform& t) { return false; }
@@ -80,7 +80,7 @@ private:
 	bool obscurer;
 	float elapsed;
 	Vector velocity;
-	std::vector<Channel> channels;
+	std::vector<gxChannel*> channels;
 	Vector capt_pos, capt_scl;
 	Quat capt_rot;
 	mutable Object* last_copy;

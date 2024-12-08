@@ -1,10 +1,14 @@
 ; Assign a global variable for the sound
-Global sndPlayerDie
+Global sound
 
 ; Load the sound file into memory
 
-sndPlayerDie=LoadSound("sounds/die.wav")
+sound = LoadSound("sounds/die.wav")
 
-; Play the sound
+; If the sound is valid, play the sound, otherwise tell the player that the sound file is invalid.
 
-chnDie=PlaySound ( sndPlayerDie )
+If VerifySound(sound)
+    PlaySound(sound)
+Else
+    Print("Oops, the sound file is invalid.")
+EndIf

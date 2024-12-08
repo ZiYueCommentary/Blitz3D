@@ -1,0 +1,80 @@
+<html>
+
+<head>
+    <link rel=stylesheet href=../css/commands.css type=text/css>
+</head>
+
+<body>
+    <h1>VerifyChannel (channel_handle)</h1>
+    <h1>Parameters</h1>
+    <table>
+        <tr>
+            <td>
+                channel_handle = variable assigned to the channel when played
+            </td>
+        </tr>
+    </table>
+    <h1>Description</h1>
+    <table>
+        <tr>
+            <td>
+                This command verifies the integrity and validity of the channel variable. Returns True if the
+                channel is valid and has not been released, or False if the channel is invalid or has been released.
+
+                Note: This function does not check if the channel is playing. Once PlaySound or PlayMusic is called,
+                the function will always return True until StopChannel is called. If you need to check if the channel
+                is active playing, use the ChannelPlaying function.
+            </td>
+        </tr>
+    </table>
+    <h1><a href=../2d_examples/VerifyChannel.bb>Example</a></h1>
+    <table>
+        <tr>
+            <td>
+                ;First, load and play the music.
+
+                <br />
+                Local channel = PlayMusic("music.ogg")
+                <br />
+                
+                <br />
+                ;Check the music channel whether is valid or not.
+                <br />
+                
+                <br />
+                If VerifyChannel(channel)
+                    <br />
+                    Print("Good job! The music is playing successfully.")
+                    <br />
+                    Delay(5000)
+                    <br />
+                
+                    <br />
+                    ;Now, stop the channel.
+                    <br />
+                    StopChannel(channel)
+                    <br />
+                
+                    <br />
+                    ;Print the channel whether is valid or not.
+                    <br />
+                    ;If everything is OK. It should print "0"(False) because channel was stopped.
+                    <br />
+                    Print(VerifyChannel(channel))
+                    <br />
+                Else
+                    <br />
+                    Print("The music is invalid.")
+                    <br />
+                    ;You don't need to call StopChannel because it will automatically release if the music doesn't play successfully.
+                    <br />
+                EndIf
+                <br />
+            </td>
+        </tr>
+    </table>
+    <br>
+    <a target=_top href=../index.htm>Index</a><br>
+</body>
+
+</html>

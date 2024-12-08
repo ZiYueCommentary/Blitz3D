@@ -140,29 +140,29 @@ const Transform& Object::getPrevWorldTform()const {
     return prev_tform;
 }
 
-Channel Object::emitSound(Sound* sound) {
-    if (!sound) return 0;
+gxChannel* Object::emitSound(gxAudio::Sound* sound) {
+    if (!sound) return nullptr;
 
     const Vector& pos = getWorldTform().v;
-    Channel channel = bbPlay3dSound(sound, pos.x, pos.y, pos.z, velocity.x, velocity.y, velocity.z);
+    gxChannel* channel = bbPlay3dSound(sound, pos.x, pos.y, pos.z, velocity.x, velocity.y, velocity.z);
 
-    for (int k = 0; k < channels.size(); ++k) {
-        if (channel == channels[k]) return channel;
-        if (!channels[k]) return channels[k] = channel;
+    for (auto& k : channels) {
+        if (channel == k) return channel;
+        if (!k) return k = channel;
     }
     channels.push_back(channel);
     return channel;
 }
 
 void Object::updateSounds() {
-    for (int k = 0; k < channels.size(); ++k) {
-        if (Channel channel = channels[k]) {
+    for (auto& k : channels) {
+        if (gxChannel* channel = k) {
             if (bbChannelPlaying(channel)) {
                 const Vector& pos = getWorldTform().v;
                 bbSet3dChannel(channel, pos.x, pos.y, pos.z, velocity.x, velocity.y, velocity.z);
             }
             else {
-                channels[k] = 0;
+                k = nullptr;
             }
         }
     }

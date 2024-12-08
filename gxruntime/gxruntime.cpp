@@ -1,6 +1,7 @@
 #include "std.h"
 #include "gxruntime.h"
 #include "zmouse.h"
+#include "../bbruntime/bbaudio.h"
 
 #include "../gxruntime/gxutf8.h"
 
@@ -167,11 +168,11 @@ gxRuntime::~gxRuntime() {
 }
 
 void gxRuntime::pauseAudio() {
-	
+
 }
 
 void gxRuntime::resumeAudio() {
-	
+
 }
 
 void gxRuntime::restoreGraphics() {
@@ -800,7 +801,7 @@ gxGraphics* gxRuntime::openWindowedGraphics(int w, int h, int d, bool d3d) {
 			//create clipper
 			IDirectDrawClipper* cp;
 			if(dd->CreateClipper(0, &cp, 0) >= 0) {
-				//attach clipper 
+				//attach clipper
 				if(ps->SetClipper(cp) >= 0) {
 					//set clipper HWND
 					if(cp->SetHWnd(0, hwnd) >= 0) {

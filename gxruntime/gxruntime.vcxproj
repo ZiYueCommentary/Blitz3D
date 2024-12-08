@@ -141,9 +141,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ddutil.cpp" />
+    <ClCompile Include="gxaudio.cpp" />
+    <ClCompile Include="gxchannel.cpp" />
     <ClCompile Include="gxfont.cpp" />
     <ClCompile Include="gxcanvas.cpp" />
-    <ClCompile Include="gxchannel.cpp" />
     <ClCompile Include="gxdevice.cpp" />
     <ClCompile Include="gxdir.cpp" />
     <ClCompile Include="gxfilesystem.cpp" />
@@ -168,9 +169,10 @@
   <ItemGroup>
     <ClInclude Include="asmcoder.h" />
     <ClInclude Include="ddutil.h" />
+    <ClInclude Include="gxaudio.h" />
+    <ClInclude Include="gxchannel.h" />
     <ClInclude Include="gxfont.h" />
     <ClInclude Include="gxcanvas.h" />
-    <ClInclude Include="gxchannel.h" />
     <ClInclude Include="gxdevice.h" />
     <ClInclude Include="gxdir.h" />
     <ClInclude Include="gxfilesystem.h" />
