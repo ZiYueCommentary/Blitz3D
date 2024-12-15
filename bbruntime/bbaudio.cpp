@@ -249,7 +249,7 @@ void bbStopAllChannels() {
 
 void bbFreeAllStoppedChannels() {
     for (const auto channel : channels) {
-        if (!bbVerifyChannel(channel)) {
+        if (bbChannelPlaying(channel)) {
             continue;
         }
 
