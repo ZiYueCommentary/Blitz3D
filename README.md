@@ -28,3 +28,6 @@ Please read [this document](EXTENDING.md).
   When redistributing programs built with Blitz3D TSS, you will need to also include the `fmod.dll` file found in the `bin` directory with your programs. 
   
   This should be placed in the same directory as your program's executable.
+
+### SoLoud
+See in [FMod To SoLoud](FMOD2SOLOUD.md)

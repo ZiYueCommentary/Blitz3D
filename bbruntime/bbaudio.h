@@ -17,7 +17,7 @@ void bbSoundPan(gxAudio::Sound* sound, float pan);
 void bbSoundPitch(gxAudio::Sound* sound, float pitch);
 
 gxChannel* bbPlaySound(gxAudio::Sound* sound);
-gxChannel* bbPlayMusic(const BBStr* path);
+gxChannel* bbPlayMusic(const BBStr* path, float volume);
 
 void bbStopChannel(gxChannel* channel);
 void bbPauseChannel(gxChannel* channel);

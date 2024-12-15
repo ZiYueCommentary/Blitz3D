@@ -166,7 +166,7 @@ gxAudio::SoundChannel* gxAudio::play3dSound(const Sound& sound, const float x, c
     return channel;
 }
 
-gxAudio::StreamChannel* gxAudio::playMusic(const char* path) const {
+gxAudio::StreamChannel* gxAudio::playMusic(const char* path, float volume) const {
     if (!soloud) return nullptr;
 
     const auto stream = new SoLoud::WavStream();
@@ -178,7 +178,7 @@ gxAudio::StreamChannel* gxAudio::playMusic(const char* path) const {
 
     const auto sound = new Sound{.source = stream};
 
-    const channel_handle handle = soloud->play(*sound->source);
+    const channel_handle handle = soloud->play(*sound->source, volume);
     const auto channel = new StreamChannel{*this, handle};
 
     return channel;

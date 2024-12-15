@@ -1,6 +1,8 @@
 #ifndef STD_H
 #define STD_H
 
+#define NOMINMAX
+
 #include <Windows.h>
 
 #include "constants.h"

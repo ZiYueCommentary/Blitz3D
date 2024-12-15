@@ -97,8 +97,8 @@ gxChannel* bbPlaySound(gxAudio::Sound* sound) {
     return channel;
 }
 
-gxChannel* bbPlayMusic(const BBStr* path) {
-    gxChannel* channel = gx_audio->playMusic(path->c_str());
+gxChannel* bbPlayMusic(const BBStr* path, float volume) {
+    gxChannel* channel = gx_audio->playMusic(path->c_str(), volume);
 
     if (channel != nullptr) {
         channels.insert(channel);
@@ -133,10 +133,12 @@ void bbResumeChannel(gxChannel* channel) {
     channel->setPaused(false);
 }
 
-void bbChannelVolume(gxChannel* channel, const float volume) {
+void bbChannelVolume(gxChannel* channel, float volume) {
     if (!channel) return;
 
     debugChannel(channel, "ChannelVolume");
+
+    volume = std::max(volume, 0.0f);
 
     channel->setVolume(volume);
 }
@@ -328,7 +330,7 @@ void audio_link(void(*rtSym)(const char*, void*)) {
 
     //Playing
     rtSym("%PlaySound%sound", bbPlaySound);
-    rtSym("%PlayMusic$filepath", bbPlayMusic);
+    rtSym("%PlayMusic$filepath#volume=1", bbPlayMusic);
 
     //Channel Params
     rtSym("%VerifyChannel%sound", bbVerifyChannel);

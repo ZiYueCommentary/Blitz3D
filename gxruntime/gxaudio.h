@@ -64,7 +64,7 @@ public:
     Sound* loadSound(const char* path);
     SoundChannel* playSound(const Sound& sound) const;
     SoundChannel* play3dSound(const Sound& sound, float x, float y, float z, float vx, float vy, float vz) const;
-    StreamChannel* playMusic(const char* path) const;
+    StreamChannel* playMusic(const char* path, float volume = 1.0f) const;
 
 private:
     float rolloff_factor = 1.0f;
