@@ -1199,7 +1199,7 @@ Entity* bbCreateSprite(Entity* p) {
 Entity* bbLoadSprite(BBStr* file, int flags, Entity* p) {
 	debugParent(p, "LoadSprite");
 	Texture t(*file, flags);
-	delete file; 
+	delete file;
 	if (!t.getCanvas(0)) return 0;
 	Sprite* s = new Sprite();
 	s->setTexture(0, t, 0);
@@ -1409,7 +1409,7 @@ Entity* bbCreateListener(Entity* p, float roll, float dopp, float dist) {
 	return insertEntity(listener, p);
 }
 
-gxChannel* bbEmitSound(gxSound* sound, Object* o) {
+gxChannel* bbEmitSound(gxAudio::Sound* sound, Object* o) {
 	debugObject(o, "CreateListener");
 	if (!listener) ErrorLog("CreateListener", MultiLang::no_listener_created);
 	return o->emitSound(sound);

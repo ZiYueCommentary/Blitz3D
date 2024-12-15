@@ -2,6 +2,7 @@
 #define LISTENER_H
 
 #include "object.h"
+#include "../bbruntime/bbaudio.h"
 
 class Listener : public Object {
 public:
