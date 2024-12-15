@@ -31,3 +31,6 @@ Please read [this document](EXTENDING.md).
 
 ### SoLoud
 See in [FMod To SoLoud](FMOD2SOLOUD.md)
+
+## In memory of Mark Sibly
+[Mark Sibly](https://github.com/blitz-research), the author of Blitz3D, died on 12 December 2024. 🕯️
