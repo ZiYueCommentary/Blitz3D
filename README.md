@@ -29,6 +29,8 @@ Please read [this document](EXTENDING.md).
   
   This should be placed in the same directory as your program's executable.
 
-## In memory of Mark Sibly
+### SoLoud
+See in [FMod To SoLoud](FMOD2SOLOUD.md)
 
+## In memory of Mark Sibly
 [Mark Sibly](https://github.com/blitz-research), the author of Blitz3D, died on 12 December 2024. 🕯️

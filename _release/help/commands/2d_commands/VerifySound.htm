@@ -1,0 +1,62 @@
+<html>
+
+<head>
+    <link rel=stylesheet href=../css/commands.css type=text/css>
+</head>
+
+<body>
+    <h1>VerifySound (sound_variable)</h1>
+    <h1>Parameters</h1>
+    <table>
+        <tr>
+            <td>
+                sound_variable = variable previously assigned with a LoadSound command.
+            </td>
+        </tr>
+    </table>
+    <h1>Description</h1>
+    <table>
+        <tr>
+            <td>
+                This command verifies the integrity and validity of the sound variable. Returns True if the sound 
+                variable is valid and can be used for playback, or False if the sound variable is released or invalid.
+            </td>
+        </tr>
+    </table>
+    <h1><a href=../2d_examples/VerifySound.bb>Example</a></h1>
+    <table>
+        <tr>
+            <td>
+                ; Assign a global variable for the sound
+
+                <br />
+                Global sound
+                <br />
+                
+                ; Load the sound file into memory
+                
+                <br />
+                sound = LoadSound("sounds/die.wav")
+                <br />
+                
+                ; If the sound is valid, play the sound, otherwise tell the player that the sound file is invalid.
+                
+                <br />
+                If VerifySound(sound)
+                    <br />
+                    PlaySound(sound)
+                    <br />
+                Else
+                    <br />
+                    Print("Oops, the sound file is invalid.")
+                    <br />
+                EndIf
+                <br />
+            </td>
+        </tr>
+    </table>
+    <br>
+    <a target=_top href=../index.htm>Index</a><br>
+</body>
+
+</html>
