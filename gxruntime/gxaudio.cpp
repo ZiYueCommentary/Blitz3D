@@ -1,275 +1,185 @@
-#include "std.h"
-#include "gxaudio.h"
+#include "gxAudio.h"
+#include "../bbruntime/bbsys.h"
+#include "../soloud/soloud_c.h"
+#include "../soloud/soloud_wav.h"
+#include "../soloud/soloud_wavstream.h"
 
-struct StaticChannel : public gxChannel {
-	virtual void play() = 0;
-};
+gxAudio::SoundChannel::~SoundChannel() {
+    if (!SoundChannel::isPlaying()) return;
 
-struct SoundChannel : public gxChannel {
-	SoundChannel() :channel(-1) {
-	}
-	void set(int n) {
-		channel = n;
-	}
-	void stop() {
-		FSOUND_StopSound(channel);
-	}
-	void setPaused(bool paused) {
-		FSOUND_SetPaused(channel, paused);
-	}
-	void setPitch(int pitch) {
-		FSOUND_SetFrequency(channel, pitch);
-	}
-	void setVolume(float volume) {
-		FSOUND_SetVolume(channel, volume * 255.0f);
-	}
-	void setPan(float pan) {
-		FSOUND_SetPan(channel, (pan + 1) * 127.5f);
-	}
-	void set3d(const float pos[3], const float vel[3]) {
-		FSOUND_3D_SetAttributes(channel, (float*)pos, (float*)vel);
-	}
-	bool isPlaying() {
-		return FSOUND_IsPlaying(channel) ? true : false;
-	}
-private:
-	int channel;
-};
-
-struct CDChannel : public gxChannel {
-	void play(int track, int mode) {
-		stop();
-		int cd_mode = FSOUND_CD_PLAYONCE;
-		if (mode == gxAudio::CD_MODE_LOOP) cd_mode = FSOUND_CD_PLAYLOOPED;
-		else if (mode == gxAudio::CD_MODE_ALL) cd_mode = FSOUND_CD_PLAYCONTINUOUS;
-		FSOUND_CD_SetPlayMode(0, cd_mode);
-		FSOUND_CD_Play(0, track);
-	}
-	void stop() {
-		FSOUND_CD_Stop(0);
-	}
-	void setPaused(bool paused) {
-		FSOUND_CD_SetPaused(0, paused);
-	}
-	void setPitch(int pitch) {
-	}
-	void setVolume(float volume) {
-		FSOUND_CD_SetVolume(0, volume * 255.0f);
-	}
-	void setPan(float pan) {
-	}
-	void set3d(const float pos[3], const float vel[3]) {
-	}
-	bool isPlaying() {
-		return true;
-	}
-};
-
-struct StreamChannel : public StaticChannel {
-	StreamChannel(FSOUND_STREAM* s) :stream(s) {
-		channel = FSOUND_Stream_Play(FSOUND_FREE, stream);
-	}
-	~StreamChannel() {
-		FSOUND_Stream_Close(stream);
-	}
-	void play() {
-		stop();
-		channel = FSOUND_Stream_Play(FSOUND_FREE, stream);
-	}
-	void stop() {
-		FSOUND_Stream_Stop(stream);
-		channel = -1;
-	}
-	void setPaused(bool paused) {
-		FSOUND_SetPaused(channel, paused);
-	}
-	void setPitch(int pitch) {
-		FSOUND_SetFrequency(channel, pitch);
-	}
-	void setVolume(float volume) {
-		FSOUND_SetVolume(channel, volume * 255.0f);
-	}
-	void setPan(float pan) {
-		FSOUND_SetPan(channel, (pan + 1) * 127.5f);
-	}
-	void set3d(const float pos[3], const float vel[3]) {
-	}
-	bool isPlaying() {
-		return FSOUND_IsPlaying(channel) ? true : false;
-	}
-private:
-	FSOUND_STREAM* stream;
-	int channel;
-};
-
-struct MusicChannel : public StaticChannel {
-	MusicChannel(FMUSIC_MODULE* m) :module(m) {
-		play();
-	}
-	~MusicChannel() {
-		FMUSIC_FreeSong(module);
-	}
-	void play() {
-		FMUSIC_PlaySong(module);
-	}
-	void stop() {
-		FMUSIC_StopSong(module);
-	}
-	void setPaused(bool paused) {
-		FMUSIC_SetPaused(module, paused);
-	}
-	void setPitch(int pitch) {
-	}
-	void setVolume(float volume) {
-		FMUSIC_SetMasterVolume(module, volume * 255.0f);
-	}
-	void setPan(float pan) {
-	}
-	void set3d(const float pos[3], const float vel[3]) {
-	}
-	bool isPlaying() {
-		return FMUSIC_IsFinished(module) ? false : true;
-	}
-private:
-	FMUSIC_MODULE* module;
-};
-
-static std::set<gxSound*> sound_set;
-static std::vector<gxChannel*> channels;
-static std::map<std::string, StaticChannel*> songs;
-static CDChannel* cdChannel;
-
-static int next_chan;
-static std::vector<SoundChannel*> soundChannels;
-
-static gxChannel* allocSoundChannel(int n) {
-
-	SoundChannel* chan = 0;
-	for (int k = 0; k < soundChannels.size(); ++k) {
-		chan = soundChannels[next_chan];
-		if (!chan) {
-			chan = soundChannels[next_chan] = new SoundChannel();
-			channels.push_back(chan);
-		}
-		else if (chan->isPlaying()) {
-			chan = 0;
-		}
-		if (++next_chan == soundChannels.size()) next_chan = 0;
-		if (chan) break;
-	}
-
-	if (!chan) {
-		next_chan = soundChannels.size();
-		soundChannels.resize(soundChannels.size() * 2);
-		for (int k = next_chan; k < soundChannels.size(); ++k) soundChannels[k] = 0;
-		chan = soundChannels[next_chan++] = new SoundChannel();
-		channels.push_back(chan);
-	}
-
-	chan->set(n);
-	return chan;
+    SoundChannel::stop();
 }
 
-gxAudio::gxAudio(gxRuntime* r) :
-	runtime(r) {
-	next_chan = 0;
-	soundChannels.resize(4096);
-	for (int k = 0; k < 4096; ++k) soundChannels[k] = 0;
+void gxAudio::SoundChannel::stop() {
+    if (!SoundChannel::isPlaying()) return;
 
-	cdChannel = new CDChannel();
-	channels.push_back(cdChannel);
+    gx_audio.soloud->stop(handle);
+}
+
+void gxAudio::SoundChannel::setPaused(const bool paused) {
+    if (!SoundChannel::isPlaying()) return;
+
+    gx_audio.soloud->setPause(handle, paused);
+}
+
+void gxAudio::SoundChannel::setPitch(const float pitch) {
+    if (!SoundChannel::isPlaying()) return;
+
+    gx_audio.soloud->setRelativePlaySpeed(handle, pitch);
+}
+
+void gxAudio::SoundChannel::setVolume(const float volume) {
+    if (!SoundChannel::isPlaying()) return;
+
+    gx_audio.soloud->setVolume(handle, volume);
+}
+
+void gxAudio::SoundChannel::setPan(const float pan) {
+    if (!SoundChannel::isPlaying()) return;
+
+    gx_audio.soloud->setPan(handle, pan);
+}
+
+void gxAudio::SoundChannel::setLooping(const bool looping) {
+    if (!SoundChannel::isPlaying()) return;
+
+    gx_audio.soloud->setLooping(handle, looping);
+}
+
+void gxAudio::SoundChannel::set3d(const float x, const float y, const float z, const float vx, const float vy, const float vz) {
+    if (!SoundChannel::isPlaying()) return;
+
+    gx_audio.soloud->set3dSourceParameters(handle, x * gx_audio.distance_factor, y * gx_audio.distance_factor, z * gx_audio.distance_factor,
+                                  vx * gx_audio.distance_factor, vy * gx_audio.distance_factor, vz * gx_audio.distance_factor);
+}
+
+bool gxAudio::SoundChannel::getPaused() {
+    if (!SoundChannel::isPlaying()) return true;
+
+    return gx_audio.soloud->getPause(handle);
+}
+
+float gxAudio::SoundChannel::getPitch() {
+    if (!SoundChannel::isPlaying()) return 0.0f;
+
+    return gx_audio.soloud->getRelativePlaySpeed(handle);
+}
+
+float gxAudio::SoundChannel::getVolume() {
+    if (!SoundChannel::isPlaying()) return 0.0f;
+
+    return gx_audio.soloud->getVolume(handle);
+}
+
+float gxAudio::SoundChannel::getPan() {
+    if (!SoundChannel::isPlaying()) return 0.0f;
+
+    return gx_audio.soloud->getPan(handle);
+}
+
+bool gxAudio::SoundChannel::getLooping() {
+    if (!SoundChannel::isPlaying()) return false;
+
+    return gx_audio.soloud->getLooping(handle);
+}
+
+int gxAudio::SoundChannel::getSampleRate() {
+    if (!SoundChannel::isPlaying()) return 0;
+
+    return static_cast<int>(gx_audio.soloud->getSamplerate(handle));
+}
+
+bool gxAudio::SoundChannel::isPlaying() {
+    return gx_audio.soloud->isValidVoiceHandle(handle);
+}
+
+gxAudio::gxAudio() {
+    soloud = new SoLoud::Soloud();
+
+    if (soloud->init(SOLOUD_LEFT_HANDED_3D) != SoLoud::SO_NO_ERROR) {
+        delete soloud;
+        soloud = nullptr;
+    }
 }
 
 gxAudio::~gxAudio() {
-	//free all channels
-	for (; channels.size(); channels.pop_back()) delete channels.back();
-	//free all sound_set
-	while (sound_set.size()) freeSound(*sound_set.begin());
-	soundChannels.clear();
-	songs.clear();
+    if (!soloud) return;
 
-	FSOUND_Close();
+    soloud->deinit();
+    delete soloud;
+    soloud = nullptr;
 }
 
-gxChannel* gxAudio::play(FSOUND_SAMPLE* sample) {
-
-	int n = FSOUND_PlaySound(FSOUND_FREE, sample);
-	return n >= 0 ? allocSoundChannel(n) : 0;
+void gxAudio::set3dListenerConfig(const float roll, const float dopp, const float dist) {
+    rolloff_factor = roll;
+    doppler_factor = dopp;
+    distance_factor = dist;
 }
 
-gxChannel* gxAudio::play3d(FSOUND_SAMPLE* sample, const float pos[3], const float vel[3]) {
+void gxAudio::set3dListener(const float x, const float y, const float z, const float kx, const float ky, const float kz, float jx, const float jy, const float jz,
+    const float vx, const float vy, const float vz) {
+    if (!soloud) return;
 
-	int n = FSOUND_PlaySoundEx(FSOUND_FREE, sample, 0, true);
-	if (n < 0) return 0;
-	FSOUND_3D_SetAttributes(n, (float*)pos, (float*)vel);
-	FSOUND_SetPaused(n, false);
-	return allocSoundChannel(n);
+    soloud->set3dListenerParameters(x * distance_factor, y * distance_factor, z * distance_factor, kx, ky, kz, jy, jy, jz, vx * distance_factor, vy * distance_factor, vz * distance_factor);
+    soloud->update3dAudio();
 }
 
-void gxAudio::pause() {
+gxAudio::Sound* gxAudio::loadSound(const char* path) {
+    const auto sound = new SoLoud::Wav();
+
+    if (sound->load(path) != SoLoud::SO_NO_ERROR) {
+        delete sound;
+        return nullptr;
+    }
+
+    return new Sound{.source = sound};
 }
 
-void gxAudio::resume() {
+gxAudio::SoundChannel* gxAudio::playSound(const Sound& sound) const {
+    if (!soloud) return nullptr;
+
+    const channel_handle handle = soloud->play(*sound.source, sound.volume, sound.pan, sound.pitch >= EPSILON);
+    const auto channel = new SoundChannel(*this, handle);
+
+    if (sound.pitch >= EPSILON) {
+        channel->setPitch(sound.pitch);
+        channel->setPaused(false);
+    }
+
+    return channel;
 }
 
-gxSound* gxAudio::loadSound(const std::string& f, bool use3d) {
+gxAudio::SoundChannel* gxAudio::play3dSound(const Sound& sound, const float x, const float y, const float z, const float vx, const float vy, const float vz) const {
+    if (!soloud) return nullptr;
 
-	int flags = FSOUND_NORMAL | (use3d ? FSOUND_FORCEMONO : FSOUND_2D);
+    sound.source->set3dAttenuation(SoLoud::AudioSource::INVERSE_DISTANCE, rolloff_factor);
+    sound.source->set3dDopplerFactor(doppler_factor);
 
-	FSOUND_SAMPLE* sample = FSOUND_Sample_Load(FSOUND_FREE, f.c_str(), flags, 0, 0);
-	if (!sample) return 0;
+    const channel_handle handle = soloud->play3d(*sound.source, x, y, z, vx, vy, vz, sound.volume, false, 0);
+    const auto channel = new SoundChannel(*this, handle);
 
-	gxSound* sound = new gxSound(this, sample);
-	sound_set.insert(sound);
-	return sound;
+    if (sound.pitch >= EPSILON) {
+        channel->setPitch(sound.pitch);
+        channel->setPaused(false);
+    }
+
+    return channel;
 }
 
-gxSound* gxAudio::verifySound(gxSound* s) {
-	return sound_set.count(s) ? s : 0;
-}
+gxAudio::StreamChannel* gxAudio::playMusic(const char* path, float volume) const {
+    if (!soloud) return nullptr;
 
-void gxAudio::freeSound(gxSound* s) {
-	if (sound_set.erase(s)) delete s;
-}
+    const auto stream = new SoLoud::WavStream();
 
-void gxAudio::setPaused(bool paused) {
-	FSOUND_SetPaused(FSOUND_ALL, paused);
-}
+    if (stream->load(path) != SoLoud::SO_NO_ERROR) {
+        delete stream;
+        return nullptr;
+    }
 
-void gxAudio::setVolume(float volume) {
-}
+    const auto sound = new Sound{.source = stream};
 
-void gxAudio::set3dOptions(float roll, float dopp, float dist) {
-	FSOUND_3D_SetRolloffFactor(roll);
-	FSOUND_3D_SetDopplerFactor(dopp);
-	FSOUND_3D_SetDistanceFactor(dist);
-}
+    const channel_handle handle = soloud->play(*sound->source, volume);
+    const auto channel = new StreamChannel{*this, handle};
 
-void gxAudio::set3dListener(const float pos[3], const float vel[3], const float forward[3], const float up[3]) {
-	FSOUND_3D_Listener_SetAttributes((float*)pos, (float*)vel, forward[0], forward[1], forward[2], up[0], up[1], up[2]);
-	FSOUND_Update();
-}
-
-gxChannel* gxAudio::playFile(const std::string& t, bool use_3d, int mode) {
-	std::string f = tolower(t);
-	StaticChannel* chan = 0;
-	std::map<std::string, StaticChannel*>::iterator it = songs.find(f);
-	if (it != songs.end()) {
-		chan = it->second;
-		chan->play();
-		return chan;
-	}
-	else {
-		FSOUND_STREAM* stream = FSOUND_Stream_Open(f.c_str(), mode, 0, 0);
-		if (!stream) return 0;
-		chan = new StreamChannel(stream);
-	}
-	channels.push_back(chan);
-	songs[f] = chan;
-	return chan;
-}
-
-gxChannel* gxAudio::playCDTrack(int track, int mode) {
-	cdChannel->play(track, mode);
-	return cdChannel;
+    return channel;
 }

@@ -29,26 +29,30 @@
         <tr>
             <td>
                 ; Assign a global variable for the sound
-                <br />
-                Global sndPlayerDie
-                <br />
 
                 <br />
+                Global sound
+                <br />
+                
                 ; Load the sound file into memory
+                
                 <br />
-
+                sound = LoadSound("sounds/die.wav")
                 <br />
-                sndPlayerDie=LoadSound("sounds/die.wav")
+                
+                ; If the sound is valid, play the sound, otherwise tell the player that the sound file is invalid.
+                
                 <br />
-
+                If VerifySound(sound)
+                    <br />
+                    PlaySound(sound)
+                    <br />
+                Else
+                    <br />
+                    Print("Oops, the sound file is invalid.")
+                    <br />
+                EndIf
                 <br />
-                ; Play the sound
-                <br />
-
-                <br />
-                PlaySound sndPlayerDie
-                <br />
-
             </td>
         </tr>
     </table>

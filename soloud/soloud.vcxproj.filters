@@ -1,0 +1,225 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="soloud_ay.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_bassboostfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_biquadresonantfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_bus.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_c.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_dcremovalfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_duckfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_echofilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_eqfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_error.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_fader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_fft.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_fftfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_file.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_file_hack_off.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_file_hack_on.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_filter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_flangerfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_freeverbfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_internal.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_lofifilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_misc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_monotone.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_noise.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_openmpt.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_queue.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_robotizefilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_sfxr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_speech.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_tedsid.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_thread.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_vic.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_vizsn.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_wav.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_waveshaperfilter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_wavstream.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="zx7decompress.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="soloud_audiosource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dr_flac.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dr_mp3.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dr_wav.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_vorbis.h">
+      <Filter>源文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="soloud_xaudio2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_winmm.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_basicops.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_faderops.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_filterops.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_getters.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_setters.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_voicegroup.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_voiceops.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_fader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_fft.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_fft_lut.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_file.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_filter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_misc.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_queue.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_thread.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_audiosource.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_bus.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_core_3d.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dr_impl.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_wav.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="soloud_wavstream.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_vorbis.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

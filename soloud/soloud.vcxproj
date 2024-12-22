@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dr_flac.h" />
+    <ClInclude Include="dr_mp3.h" />
+    <ClInclude Include="dr_wav.h" />
+    <ClInclude Include="soloud.h" />
+    <ClInclude Include="soloud_audiosource.h" />
+    <ClInclude Include="soloud_ay.h" />
+    <ClInclude Include="soloud_bassboostfilter.h" />
+    <ClInclude Include="soloud_biquadresonantfilter.h" />
+    <ClInclude Include="soloud_bus.h" />
+    <ClInclude Include="soloud_c.h" />
+    <ClInclude Include="soloud_dcremovalfilter.h" />
+    <ClInclude Include="soloud_duckfilter.h" />
+    <ClInclude Include="soloud_echofilter.h" />
+    <ClInclude Include="soloud_eqfilter.h" />
+    <ClInclude Include="soloud_error.h" />
+    <ClInclude Include="soloud_fader.h" />
+    <ClInclude Include="soloud_fft.h" />
+    <ClInclude Include="soloud_fftfilter.h" />
+    <ClInclude Include="soloud_file.h" />
+    <ClInclude Include="soloud_file_hack_off.h" />
+    <ClInclude Include="soloud_file_hack_on.h" />
+    <ClInclude Include="soloud_filter.h" />
+    <ClInclude Include="soloud_flangerfilter.h" />
+    <ClInclude Include="soloud_freeverbfilter.h" />
+    <ClInclude Include="soloud_internal.h" />
+    <ClInclude Include="soloud_lofifilter.h" />
+    <ClInclude Include="soloud_misc.h" />
+    <ClInclude Include="soloud_monotone.h" />
+    <ClInclude Include="soloud_noise.h" />
+    <ClInclude Include="soloud_openmpt.h" />
+    <ClInclude Include="soloud_queue.h" />
+    <ClInclude Include="soloud_robotizefilter.h" />
+    <ClInclude Include="soloud_sfxr.h" />
+    <ClInclude Include="soloud_speech.h" />
+    <ClInclude Include="soloud_tedsid.h" />
+    <ClInclude Include="soloud_thread.h" />
+    <ClInclude Include="soloud_vic.h" />
+    <ClInclude Include="soloud_vizsn.h" />
+    <ClInclude Include="soloud_wav.h" />
+    <ClInclude Include="soloud_waveshaperfilter.h" />
+    <ClInclude Include="soloud_wavstream.h" />
+    <ClInclude Include="stb_vorbis.h" />
+    <ClInclude Include="zx7decompress.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dr_impl.cpp" />
+    <ClCompile Include="soloud.cpp" />
+    <ClCompile Include="soloud_audiosource.cpp" />
+    <ClCompile Include="soloud_bus.cpp" />
+    <ClCompile Include="soloud_core_3d.cpp" />
+    <ClCompile Include="soloud_core_basicops.cpp" />
+    <ClCompile Include="soloud_core_faderops.cpp" />
+    <ClCompile Include="soloud_core_filterops.cpp" />
+    <ClCompile Include="soloud_core_getters.cpp" />
+    <ClCompile Include="soloud_core_setters.cpp" />
+    <ClCompile Include="soloud_core_voicegroup.cpp" />
+    <ClCompile Include="soloud_core_voiceops.cpp" />
+    <ClCompile Include="soloud_fader.cpp" />
+    <ClCompile Include="soloud_fft.cpp" />
+    <ClCompile Include="soloud_fft_lut.cpp" />
+    <ClCompile Include="soloud_file.cpp" />
+    <ClCompile Include="soloud_filter.cpp" />
+    <ClCompile Include="soloud_misc.cpp" />
+    <ClCompile Include="soloud_queue.cpp" />
+    <ClCompile Include="soloud_thread.cpp" />
+    <ClCompile Include="soloud_wav.cpp" />
+    <ClCompile Include="soloud_wavstream.cpp" />
+    <ClCompile Include="soloud_winmm.cpp" />
+    <ClCompile Include="soloud_xaudio2.cpp" />
+    <ClCompile Include="stb_vorbis.c" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{979b8f41-9a44-49c1-84a0-de4da9f3bb4e}</ProjectGuid>
+    <RootNamespace>soloud</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>.\Release\</IntDir>
+    <OutDir>..\Release\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <CallingConvention>Cdecl</CallingConvention>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <AdditionalIncludeDirectories>.\;</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

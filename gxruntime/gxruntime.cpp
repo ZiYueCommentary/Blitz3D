@@ -1,6 +1,7 @@
 #include "std.h"
 #include "gxruntime.h"
 #include "zmouse.h"
+#include "../bbruntime/bbaudio.h"
 
 #include "../gxruntime/gxutf8.h"
 
@@ -117,7 +118,7 @@ typedef void (WINAPI* RtlGetVersionFunc) (OSVERSIONINFO*);
 
 gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	hinst(hi), cmd_line(cl), hwnd(hw), curr_driver(0), enum_all(false),
-	pointer_visible(true), audio(0), input(0), graphics(0), fileSystem(0), use_di(false) {
+	pointer_visible(true), input(0), graphics(0), fileSystem(0), use_di(false) {
 
 	CoInitialize(0);
 
@@ -154,7 +155,6 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 
 gxRuntime::~gxRuntime() {
 	while(timers.size()) freeTimer(*timers.begin());
-	if(audio) closeAudio(audio);
 	if(graphics) closeGraphics(graphics);
 	if(input) closeInput(input);
 	TIMECAPS tc;
@@ -168,11 +168,11 @@ gxRuntime::~gxRuntime() {
 }
 
 void gxRuntime::pauseAudio() {
-	if(audio) audio->pause();
+
 }
 
 void gxRuntime::resumeAudio() {
-	if(audio) audio->resume();
+
 }
 
 void gxRuntime::restoreGraphics() {
@@ -699,31 +699,6 @@ void gxRuntime::setPointerVisible(bool vis) {
 }
 
 /////////////////
-// AUDIO SETUP //
-/////////////////
-gxAudio* gxRuntime::openAudio(int flags) {
-	if(audio) return 0;
-
-	int f_flags =
-		FSOUND_INIT_GLOBALFOCUS |
-		FSOUND_INIT_USEDEFAULTMIDISYNTH;
-
-	FSOUND_SetHWND(hwnd);
-	if(!FSOUND_Init(44100, 1024, f_flags)) {
-		return 0;
-	}
-
-	audio = new gxAudio(this);
-	return audio;
-}
-
-void gxRuntime::closeAudio(gxAudio* a) {
-	if(!audio || audio != a) return;
-	delete audio;
-	audio = 0;
-}
-
-/////////////////
 // INPUT SETUP //
 /////////////////
 gxInput* gxRuntime::openInput(int flags) {
@@ -826,7 +801,7 @@ gxGraphics* gxRuntime::openWindowedGraphics(int w, int h, int d, bool d3d) {
 			//create clipper
 			IDirectDrawClipper* cp;
 			if(dd->CreateClipper(0, &cp, 0) >= 0) {
-				//attach clipper 
+				//attach clipper
 				if(ps->SetClipper(cp) >= 0) {
 					//set clipper HWND
 					if(cp->SetHWnd(0, hwnd) >= 0) {
