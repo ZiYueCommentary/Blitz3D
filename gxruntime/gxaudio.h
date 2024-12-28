@@ -3,6 +3,7 @@
 
 #include "gxchannel.h"
 #include "../soloud/soloud.h"
+#include "../soloud/soloud_wavstream.h"
 
 typedef unsigned int channel_handle;
 
@@ -51,7 +52,11 @@ public:
 
     struct StreamChannel : SoundChannel
     {
-        StreamChannel(const gxAudio& gx_audio, const channel_handle handle): SoundChannel(gx_audio, handle) { }
+        SoLoud::WavStream* stream;
+
+        StreamChannel(const gxAudio& gx_audio, SoLoud::WavStream* stream, const channel_handle handle) : SoundChannel(gx_audio, handle), stream(stream) { }
+
+        ~StreamChannel() override;
     };
 
     SoLoud::Soloud* soloud = nullptr;

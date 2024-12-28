@@ -2,7 +2,6 @@
 #include "../bbruntime/bbsys.h"
 #include "../soloud/soloud_c.h"
 #include "../soloud/soloud_wav.h"
-#include "../soloud/soloud_wavstream.h"
 
 gxAudio::SoundChannel::~SoundChannel() {
     if (!SoundChannel::isPlaying()) return;
@@ -93,6 +92,14 @@ bool gxAudio::SoundChannel::isPlaying() {
     return gx_audio.soloud->isValidVoiceHandle(handle);
 }
 
+gxAudio::StreamChannel::~StreamChannel() {
+    if (StreamChannel::isPlaying()) {
+        StreamChannel::stop();
+    }
+
+    delete stream;
+}
+
 gxAudio::gxAudio() {
     soloud = new SoLoud::Soloud();
 
@@ -166,7 +173,7 @@ gxAudio::SoundChannel* gxAudio::play3dSound(const Sound& sound, const float x, c
     return channel;
 }
 
-gxAudio::StreamChannel* gxAudio::playMusic(const char* path, float volume) const {
+gxAudio::StreamChannel* gxAudio::playMusic(const char* path, const float volume) const {
     if (!soloud) return nullptr;
 
     const auto stream = new SoLoud::WavStream();
@@ -176,10 +183,8 @@ gxAudio::StreamChannel* gxAudio::playMusic(const char* path, float volume) const
         return nullptr;
     }
 
-    const auto sound = new Sound{.source = stream};
-
-    const channel_handle handle = soloud->play(*sound->source, volume);
-    const auto channel = new StreamChannel{*this, handle};
+    const channel_handle handle = soloud->play(*stream, volume);
+    const auto channel = new StreamChannel{*this, stream, handle};
 
     return channel;
 }

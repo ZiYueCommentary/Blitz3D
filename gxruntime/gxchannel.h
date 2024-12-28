@@ -1,6 +1,5 @@
 #ifndef GXCHANNEL_H
 #define GXCHANNEL_H
-#include "../soloud/soloud.h"
 
 class gxChannel
 {
