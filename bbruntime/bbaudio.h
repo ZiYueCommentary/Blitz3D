@@ -11,7 +11,7 @@ int bbVerifyChannel(gxChannel* channel);
 
 gxAudio::Sound* bbLoadSound(const BBStr* path);
 void bbFreeSound(gxAudio::Sound* sound);
-void bbLoopSound(gxAudio::Sound* sound);
+void bbLoopSound(gxAudio::Sound* sound, bool loop);
 void bbSoundVolume(gxAudio::Sound* sound, float volume);
 void bbSoundPan(gxAudio::Sound* sound, float pan);
 void bbSoundPitch(gxAudio::Sound* sound, float pitch);

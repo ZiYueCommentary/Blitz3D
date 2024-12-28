@@ -51,12 +51,12 @@ void bbFreeSound(gxAudio::Sound* sound) {
     delete sound;
 }
 
-void bbLoopSound(gxAudio::Sound* sound) {
+void bbLoopSound(gxAudio::Sound* sound, const bool loop) {
     if (!sound) return;
 
     debugSound(sound, "LoopSound");
 
-    sound->source->setLooping(true);
+    sound->source->setLooping(loop);
 }
 
 void bbSoundVolume(gxAudio::Sound* sound, const float volume) {
@@ -97,7 +97,7 @@ gxChannel* bbPlaySound(gxAudio::Sound* sound) {
     return channel;
 }
 
-gxChannel* bbPlayMusic(const BBStr* path, float volume) {
+gxChannel* bbPlayMusic(const BBStr* path, const float volume) {
     gxChannel* channel = gx_audio->playMusic(path->c_str(), volume);
 
     if (channel != nullptr) {
@@ -224,7 +224,7 @@ gxAudio::Sound* bbGetSound(const int index) {
     return *sound;
 }
 
-gxChannel* bbGetChannel(int index) {
+gxChannel* bbGetChannel(const int index) {
     debugChannelIndex(index, "GetChannel");
 
     auto channel = channels.begin();
@@ -247,17 +247,6 @@ void bbStopAllChannels() {
     }
 
     channels.clear();
-}
-
-void bbFreeAllStoppedChannels() {
-    for (const auto channel : channels) {
-        if (bbChannelPlaying(channel)) {
-            continue;
-        }
-
-        channels.erase(channel);
-        delete channel;
-    }
 }
 
 gxChannel* bbPlay3dSound(gxAudio::Sound* sound, const float x, const float y, const float z, const float vx, const float vy, const float vz) {
@@ -323,7 +312,7 @@ void audio_link(void(*rtSym)(const char*, void*)) {
     rtSym("%VerifySound%sound", bbVerifySound);
     rtSym("%LoadSound$filename", bbLoadSound);
     rtSym("FreeSound%sound", bbFreeSound);
-    rtSym("LoopSound%sound", bbLoopSound);
+    rtSym("LoopSound%sound%loop=1", bbLoopSound);
     rtSym("SoundPitch%sound%pitch", bbSoundPitch);
     rtSym("SoundVolume%sound#volume", bbSoundVolume);
     rtSym("SoundPan%sound#pan", bbSoundPan);
@@ -340,7 +329,7 @@ void audio_link(void(*rtSym)(const char*, void*)) {
     rtSym("ChannelPitch%channel#pitch", bbChannelPitch);
     rtSym("ChannelVolume%channel#volume", bbChannelVolume);
     rtSym("ChannelPan%channel#pan", bbChannelPan);
-    rtSym("ChannelLoop%channel%loop", bbChannelLoop);
+    rtSym("ChannelLoop%channel%loop=1", bbChannelLoop);
     rtSym("%ChannelPlaying%channel", bbChannelPlaying);
     rtSym("%GetChannelPause%channel", bbGetChannelPause);
     rtSym("#GetChannelPitch%channel", bbGetChannelPitch);
@@ -357,5 +346,4 @@ void audio_link(void(*rtSym)(const char*, void*)) {
     rtSym("%GetChannel%index", bbGetChannel);
     rtSym("FreeAllSounds", bbFreeAllSounds);
     rtSym("StopAllChannels", bbStopAllChannels);
-    rtSym("FreeAllStoppedChannels", bbFreeAllStoppedChannels);
 }
