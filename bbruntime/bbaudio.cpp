@@ -59,11 +59,12 @@ void bbLoopSound(gxAudio::Sound* sound, const bool loop) {
     sound->source->setLooping(loop);
 }
 
-void bbSoundVolume(gxAudio::Sound* sound, const float volume) {
+void bbSoundVolume(gxAudio::Sound* sound, float volume) {
     if (!sound) return;
 
     debugSound(sound, "SoundVolume");
 
+    volume = std::max(volume, 0.0f);
     sound->source->setVolume(volume);
 }
 
@@ -97,7 +98,8 @@ gxChannel* bbPlaySound(gxAudio::Sound* sound) {
     return channel;
 }
 
-gxChannel* bbPlayMusic(const BBStr* path, const float volume) {
+gxChannel* bbPlayMusic(const BBStr* path, float volume) {
+    volume = std::max(volume, 0.0f);
     gxChannel* channel = gx_audio->playMusic(path->c_str(), volume);
 
     if (channel != nullptr) {
@@ -139,7 +141,6 @@ void bbChannelVolume(gxChannel* channel, float volume) {
     debugChannel(channel, "ChannelVolume");
 
     volume = std::max(volume, 0.0f);
-
     channel->setVolume(volume);
 }
 

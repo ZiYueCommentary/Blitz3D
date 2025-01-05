@@ -1,4 +1,4 @@
-#include "gxAudio.h"
+#include "gxaudio.h"
 #include "../bbruntime/bbsys.h"
 #include "../soloud/soloud_c.h"
 #include "../soloud/soloud_wav.h"
