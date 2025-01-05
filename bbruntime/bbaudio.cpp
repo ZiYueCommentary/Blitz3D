@@ -65,7 +65,7 @@ void bbSoundVolume(gxAudio::Sound* sound, float volume) {
     debugSound(sound, "SoundVolume");
 
     volume = std::max(volume, 0.0f);
-    sound->source->setVolume(volume);
+    sound->volume = volume;
 }
 
 void bbSoundPan(gxAudio::Sound* sound, const float pan) {
