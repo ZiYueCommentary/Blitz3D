@@ -161,6 +161,7 @@
     <ClCompile Include="bbstream.cpp" />
     <ClCompile Include="bbstring.cpp" />
     <ClCompile Include="bbsys.cpp" />
+    <ClCompile Include="InitD3D9.cpp" />
     <ClCompile Include="std.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">std.h</PrecompiledHeaderFile>
@@ -185,6 +186,7 @@
     <ClInclude Include="bbstring.h" />
     <ClInclude Include="bbsys.h" />
     <ClInclude Include="constants.h" />
+    <ClInclude Include="InitD3D9.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="std.h" />
     <ClInclude Include="unzip.h" />

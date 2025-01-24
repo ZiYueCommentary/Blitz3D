@@ -4,6 +4,8 @@
 #include "../gxruntime/gxutf8.h"
 #include "../MultiLang/MultiLang.h"
 
+#include "InitD3D9.h"
+
 gxGraphics* gx_graphics;
 gxCanvas* gx_canvas;
 
@@ -1389,8 +1391,78 @@ void bbHidePointer()
     gx_runtime->setPointerVisible(false);
 }
 
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+    }
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+int bbTestNew()
+{
+    const char CLASS_NAME[] = "Sample Window Class";
+
+    WNDCLASS wc;
+    ZeroMemory(&wc, sizeof(WNDCLASS));
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = CLASS_NAME;
+
+    if (!RegisterClass(&wc)) {
+        return 1;
+    }
+
+    HWND hwnd = CreateWindowEx(
+        0,
+        CLASS_NAME,
+        "Win32 Simple Program",
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        1280, 720,
+        NULL,
+        NULL,
+        wc.hInstance,
+        NULL
+    );
+
+    if (hwnd == NULL) {
+        return 1;
+    }
+
+    ShowWindow(hwnd, SW_SHOWNORMAL);
+    UpdateWindow(hwnd);
+
+    initD3D(hwnd);
+
+    MSG msg;
+    ZeroMemory(&msg, sizeof(MSG));
+    
+    while (true)
+    {
+        if (PeekMessage(&msg,0,0,0,PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+                break;
+
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        else
+        {
+            render_frame();
+        }
+    }
+
+    cleanD3D();
+
+    return 0;
+}
+
 bool graphics_create()
 {
+    /*
     p_canvas = 0;
     filter = true;
     gx_driver = 0;
@@ -1405,25 +1477,26 @@ bool graphics_create()
         curr_font = gx_graphics->getDefaultFont();
         bbSetBuffer(bbFrontBuffer());
         return true;
-    }
-    return false;
+    }*/
+    return true;
 }
 
 bool graphics_destroy()
 {
+    /*
     freeGraphics();
     gfx_modes.clear();
     if (gx_graphics)
     {
         gx_runtime->closeGraphics(gx_graphics);
         gx_graphics = 0;
-    }
+    }*/
     return true;
 }
 
 void graphics_link(void (*rtSym)(const char* sym, void* pc))
 {
-
+    rtSym("%TestNew", bbTestNew);
     //gfx driver info
     rtSym("%CountGfxDrivers", bbCountGfxDrivers);
     rtSym("$GfxDriverName%driver", bbGfxDriverName);

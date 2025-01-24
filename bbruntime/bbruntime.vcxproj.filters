@@ -19,6 +19,7 @@
     <ClCompile Include="unzip.cpp">
       <Filter>ZipUtils</Filter>
     </ClCompile>
+    <ClCompile Include="InitD3D9.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basic.h" />
@@ -41,6 +42,7 @@
       <Filter>ZipUtils</Filter>
     </ClInclude>
     <ClInclude Include="constants.h" />
+    <ClInclude Include="InitD3D9.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ZipUtils">
