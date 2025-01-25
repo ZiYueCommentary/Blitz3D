@@ -48,6 +48,12 @@ private:
 		int n, from, to;
 		Toke(int n, int f, int t) :n(n), from(f), to(t) {}
 	};
+
+	struct ConditionalState {
+		bool condition_met;
+		bool condition_state;
+	};
+
 	std::istream& in;
 	std::string line;
 	std::vector<Toke> tokes;

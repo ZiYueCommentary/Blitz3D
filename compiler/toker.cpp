@@ -2,6 +2,9 @@
 #include <cctype>
 #include "toker.h"
 #include "ex.h"
+#include "preprocessor.h"
+#include <regex>
+#include <chrono>
 
 int Toker::chars_toked;
 
@@ -144,12 +147,22 @@ int Toker::lookAhead(int n)
 void Toker::nextline()
 {
     static std::map<std::string, std::string> defines;
+    static std::vector<ConditionalState> conditionalStack;
+    static bool skipLine = false;
+    static const int maxMacroDepth = 100;
+    static int macroDepth = 0;
+
+    defines["__DEBUG__"] = global_debug ? "true" : "false";
+    defines["__VERSION__"] = std::to_string(BASE_VER);
 
     ++curr_row;
     curr_toke = 0;
     tokes.clear();
     if (in.eof())
     {
+        conditionalStack.clear();
+        skipLine = false;
+
         line.resize(1); line[0] = EOF;
         tokes.push_back(Toke(EOF, 0, 1));
         return;
@@ -158,57 +171,291 @@ void Toker::nextline()
     getline(in, line); line += '\n';
     chars_toked += line.size();
 
+    auto isValidIdentifier = [](const std::string& str) {
+        if (str.empty() || !isalpha(str[0])) return false;
+        for (char c : str) {
+            if (!isalnum(c) && c != '_' && c != '(' && c != ')') return false;
+        }
+        return true;
+    };
+
     if (line.starts_with("#define"))
     {
-        std::string define = line.substr(8);
-        int sep = define.find(' ');
-        std::string content = define.substr(sep + 1);
-        content.pop_back();
-        defines[define.substr(0, sep)] = content;
+        if (!skipLine)
+        {
+            std::string define = line.substr(8);
+            int sep = define.find(' ');
+            if (sep != std::string::npos)
+            {
+                std::string name = define.substr(0, sep);
+                std::string content = define.substr(sep + 1);
+                content.pop_back();
+                if (isValidIdentifier(name))
+                {
+                    if (defines.find(name) == defines.end())
+                    {
+                        defines[name] = content;
+                    }
+                    else
+                    {
+                        std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
+                    }
+                }
+                else
+                {
+                    std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
+                }
+            }
+            else
+            {
+                std::string name = define;
+                name.pop_back();
+                if (isValidIdentifier(name))
+                {
+                    if (defines.find(name) == defines.end())
+                    {
+                        defines[name] = "1";
+                    }
+                    else
+                    {
+                        std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
+                    }
+                }
+                else
+                {
+                    std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
+                }
+            }
+        }
         tokes.push_back(Toke('\n', 0, 1));
         return;
     }
-    if (line.starts_with("#undef")) {
+
+    if (line.starts_with("#undef"))
+    {
+        if (!skipLine)
+        {
+            std::string name = line.substr(7);
+            name.pop_back();
+            if (isValidIdentifier(name))
+            {
+                defines.erase(name);
+            }
+            else
+            {
+                std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
+            }
+        }
+        tokes.push_back(Toke('\n', 0, 1));
+        return;
+    }
+
+    if (line.starts_with("#ifdef")) {
         std::string name = line.substr(7);
         name.pop_back();
-        defines.erase(name);
+        bool condition = defines.find(name) != defines.end();
+
+        ConditionalState state{ condition, condition };
+        conditionalStack.push_back(state);
+        skipLine = !condition;
+
         tokes.push_back(Toke('\n', 0, 1));
         return;
     }
 
-    for (auto def : defines)
+    if (line.starts_with("#ifndef")) {
+        std::string name = line.substr(8);
+        name.pop_back();
+        bool condition = defines.find(name) == defines.end();
+
+        ConditionalState state{ condition, condition };
+        conditionalStack.push_back(state);
+        skipLine = !condition;
+
+        tokes.push_back(Toke('\n', 0, 1));
+        return;
+    }
+
+    if (line.starts_with("#if_")) {
+        std::string condition = line.substr(line.find_first_of(' ') + 1);
+        condition.pop_back();
+
+        for (const auto& def : defines) {
+            size_t pos = 0;
+            while ((pos = condition.find(def.first, pos)) != std::string::npos) {
+                condition.replace(pos, def.first.length(), def.second);
+                pos += def.second.length();
+            }
+        }
+
+        try {
+            bool result = evaluateExpression(condition, defines);
+            ConditionalState state{ result, result };
+            conditionalStack.push_back(state);
+            skipLine = !result;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
+            ConditionalState state{ false, false };
+            conditionalStack.push_back(state);
+            skipLine = true;
+        }
+
+        tokes.push_back(Toke('\n', 0, 1));
+        return;
+    }
+
+    if (line.starts_with("#elseif_")) {
+        if (conditionalStack.empty()) {
+            std::cerr << "Error: #elseif_ without matching #if_ at line " << curr_row << std::endl;
+            skipLine = true;
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
+        }
+
+        if (conditionalStack.back().condition_met) {
+            skipLine = true;
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
+        }
+
+        std::string condition = line.substr(line.find_first_of(' ') + 1);
+        condition.pop_back();
+
+        for (const auto& def : defines) {
+            size_t pos = 0;
+            while ((pos = condition.find(def.first, pos)) != std::string::npos) {
+                condition.replace(pos, def.first.length(), def.second);
+                pos += def.second.length();
+            }
+        }
+
+        try {
+            bool result = evaluateExpression(condition, defines);
+            conditionalStack.back().condition_state = result;
+            conditionalStack.back().condition_met |= result;
+            skipLine = !result;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
+            skipLine = true;
+        }
+
+        tokes.push_back(Toke('\n', 0, 1));
+        return;
+    }
+
+    if (line.starts_with("#else_")) {
+        if (conditionalStack.empty()) {
+            std::cerr << "Error: #else_ without matching #if_ at line " << curr_row << std::endl;
+            skipLine = true;
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
+        }
+
+        bool shouldExecute = !conditionalStack.back().condition_met;
+        conditionalStack.back().condition_state = shouldExecute;
+        conditionalStack.back().condition_met |= shouldExecute;
+        skipLine = !shouldExecute;
+
+        tokes.push_back(Toke('\n', 0, 1));
+        return;
+    }
+
+    if (line.starts_with("#endif_")) {
+        if (!conditionalStack.empty()) {
+            conditionalStack.pop_back();
+            if (!conditionalStack.empty()) {
+                skipLine = !conditionalStack.back().condition_state;
+            }
+            else {
+                skipLine = false;
+            }
+        }
+        tokes.push_back(Toke('\n', 0, 1));
+        return;
+    }
+
+    if (line.starts_with("#error"))
+    {
+        if (!skipLine) {
+            std::string errMsg = line.substr(7);
+            errMsg.pop_back();
+            std::cerr << "Error: " << errMsg << " at line " << curr_row << std::endl;
+            exit(1);
+        }
+    }
+
+    if (skipLine)
+    {
+        tokes.push_back(Toke('\n', 0, 1));
+        return;
+    }
+
+    for (const auto& def : defines)
     {
         static auto replaceAll =
-            [](const std::string_view& str, const std::string_view& pattern, const std::string_view& newpat) {
+            [](const std::string_view& str, const std::map<std::string, std::string>& defines) {
             std::string result;
             result.reserve(str.size());
-
             size_t pos = 0;
-            size_t prev_pos = 0;
-            bool in_quotes = false;
 
             while (pos < str.size()) {
                 if (str[pos] == '"') {
-                    in_quotes = !in_quotes;
+                    size_t endPos = str.find('"', pos + 1);
+                    if (endPos == std::string::npos) break;
+                    result.append(str.substr(pos, endPos - pos + 1));
+                    pos = endPos + 1;
+                    continue;
                 }
 
-                if (!in_quotes && str.find(pattern, pos) == pos) {
-                    result.append(str.substr(prev_pos, pos - prev_pos));
-                    result.append(newpat);
-                    pos += pattern.size();
-                    prev_pos = pos;
+                bool matched = false;
+                for (const auto& [name, value] : defines) {
+                    size_t matchPos = str.find(name, pos);
+                    if (matchPos == pos) {
+                        bool isStartValid = (matchPos == 0 || !isalnum(str[matchPos - 1]) && str[matchPos - 1] != '_');
+                        bool isEndValid = (matchPos + name.size() == str.size() || !isalnum(str[matchPos + name.size()]) && str[matchPos + name.size()] != '_');
+                        if (isStartValid && isEndValid) {
+                            result.append(value);
+                            pos += name.size();
+                            matched = true;
+                            break;
+                        }
+                    }
                 }
-                else {
+
+                if (!matched) {
+                    result.push_back(str[pos]);
                     ++pos;
                 }
             }
 
-            result.append(str.substr(prev_pos));
             return result;
-            };
+        };
 
-        line = replaceAll(line, def.first, def.second);
+        if (++macroDepth > maxMacroDepth)
+        {
+            std::cerr << "Error: Macro expansion depth exceeded at line " << curr_row << std::endl;
+            exit(1);
+        }
+
+        line = replaceAll(line, defines);
+
+        --macroDepth;
     }
+
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream compilerDate, compilerTime;
+
+    compilerDate << std::put_time(std::localtime(&in_time_t), "%b %d %Y");
+    compilerTime << std::put_time(std::localtime(&in_time_t), "%H:%M:%S");
+
+    line = std::regex_replace(line, std::regex("__DATE__"), "\"" + compilerDate.str() + "\"");
+    line = std::regex_replace(line, std::regex("__TIME__"), "\"" + compilerTime.str() + "\"");
+    line = std::regex_replace(line, std::regex("__LINE__"), "\"" + std::to_string(curr_row + 1) + "\"");
+    line = std::regex_replace(line, std::regex("__VERSION__"), "\"" + std::to_string(BASE_VER) + "\"");
+    line = std::regex_replace(line, std::regex("__DEBUG__"), global_debug ? "1" : "0");
 
     for (int k = 0; k < line.size(); )
     {

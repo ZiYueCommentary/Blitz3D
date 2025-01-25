@@ -176,6 +176,7 @@
     <ClCompile Include="exprnode.cpp" />
     <ClCompile Include="node.cpp" />
     <ClCompile Include="parser.cpp" />
+    <ClCompile Include="preprocessor.cpp" />
     <ClCompile Include="prognode.cpp" />
     <ClCompile Include="std.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -205,6 +206,7 @@
     <ClInclude Include="node.h" />
     <ClInclude Include="nodes.h" />
     <ClInclude Include="parser.h" />
+    <ClInclude Include="preprocessor.h" />
     <ClInclude Include="prognode.h" />
     <ClInclude Include="std.h" />
     <ClInclude Include="stmtnode.h" />

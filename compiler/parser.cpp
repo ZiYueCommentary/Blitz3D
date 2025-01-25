@@ -3,6 +3,7 @@
 #include "parser.h"
 #include "../MultiLang/MultiLang.h"
 #include <format>
+#include "preprocessor.h"
 
 static const int TEXTLIMIT = 1024 * 1024 - 1;
 
@@ -18,6 +19,8 @@ Parser::Parser(Toker& t) :toker(&t), main_toker(&t) {
 ProgNode* Parser::parse(const std::string& main, bool debug) {
 
 	incfile = main;
+
+	global_debug = debug;
 
 	consts = new DeclSeqNode();
 	structs = new DeclSeqNode();
