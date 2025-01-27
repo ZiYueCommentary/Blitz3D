@@ -171,6 +171,17 @@ void Toker::nextline()
     getline(in, line); line += '\n';
     chars_toked += line.size();
 
+	// Test and strip leading whitespace's for preprocessor directives only
+    size_t firstNonWhitespace = line.find_first_not_of(" \t");
+    if (firstNonWhitespace != std::string::npos)
+    {
+        std::string strippedLine = line.substr(firstNonWhitespace);
+        if (strippedLine.starts_with("#"))
+        {
+			line = strippedLine;
+        }
+    }
+
     auto isValidIdentifier = [](const std::string& str) {
         if (str.empty() || !isalpha(str[0])) return false;
         for (char c : str) {
@@ -179,210 +190,213 @@ void Toker::nextline()
         return true;
     };
 
-    if (line.starts_with("#define"))
+	if (line.starts_with("#")) // Only parse when a Preprocessor directive has been found with #
     {
-        if (!skipLine)
+        if (line.starts_with("#define"))
         {
-            std::string define = line.substr(8);
-            int sep = define.find(' ');
-            if (sep != std::string::npos)
+            if (!skipLine)
             {
-                std::string name = define.substr(0, sep);
-                std::string content = define.substr(sep + 1);
-                content.pop_back();
-                if (isValidIdentifier(name))
+                std::string define = line.substr(8);
+                int sep = define.find(' ');
+                if (sep != std::string::npos)
                 {
-                    if (defines.find(name) == defines.end())
+                    std::string name = define.substr(0, sep);
+                    std::string content = define.substr(sep + 1);
+                    content.pop_back();
+                    if (isValidIdentifier(name))
                     {
-                        defines[name] = content;
+                        if (defines.find(name) == defines.end())
+                        {
+                            defines[name] = content;
+                        }
+                        else
+                        {
+                            std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
+                        }
                     }
                     else
                     {
-                        std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
+                        std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
                     }
                 }
                 else
                 {
-                    std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
+                    std::string name = define;
+                    name.pop_back();
+                    if (isValidIdentifier(name))
+                    {
+                        if (defines.find(name) == defines.end())
+                        {
+                            defines[name] = "1";
+                        }
+                        else
+                        {
+                            std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
+                        }
+                    }
+                    else
+                    {
+                        std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
+                    }
                 }
             }
-            else
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
+        }
+
+        if (line.starts_with("#undef"))
+        {
+            if (!skipLine)
             {
-                std::string name = define;
+                std::string name = line.substr(7);
                 name.pop_back();
                 if (isValidIdentifier(name))
                 {
-                    if (defines.find(name) == defines.end())
-                    {
-                        defines[name] = "1";
-                    }
-                    else
-                    {
-                        std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
-                    }
+                    defines.erase(name);
                 }
                 else
                 {
                     std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
                 }
             }
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
         }
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
 
-    if (line.starts_with("#undef"))
-    {
-        if (!skipLine)
-        {
+        if (line.starts_with("#ifdef")) {
             std::string name = line.substr(7);
             name.pop_back();
-            if (isValidIdentifier(name))
-            {
-                defines.erase(name);
-            }
-            else
-            {
-                std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
-            }
-        }
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
+            bool condition = defines.find(name) != defines.end();
 
-    if (line.starts_with("#ifdef")) {
-        std::string name = line.substr(7);
-        name.pop_back();
-        bool condition = defines.find(name) != defines.end();
-
-        ConditionalState state{ condition, condition };
-        conditionalStack.push_back(state);
-        skipLine = !condition;
-
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
-
-    if (line.starts_with("#ifndef")) {
-        std::string name = line.substr(8);
-        name.pop_back();
-        bool condition = defines.find(name) == defines.end();
-
-        ConditionalState state{ condition, condition };
-        conditionalStack.push_back(state);
-        skipLine = !condition;
-
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
-
-    if (line.starts_with("#if_")) {
-        std::string condition = line.substr(line.find_first_of(' ') + 1);
-        condition.pop_back();
-
-        for (const auto& def : defines) {
-            size_t pos = 0;
-            while ((pos = condition.find(def.first, pos)) != std::string::npos) {
-                condition.replace(pos, def.first.length(), def.second);
-                pos += def.second.length();
-            }
-        }
-
-        try {
-            bool result = evaluateExpression(condition, defines);
-            ConditionalState state{ result, result };
+            ConditionalState state{ condition, condition };
             conditionalStack.push_back(state);
-            skipLine = !result;
+            skipLine = !condition;
+
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
         }
-        catch (const std::exception& e) {
-            std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
-            ConditionalState state{ false, false };
+
+        if (line.starts_with("#ifndef")) {
+            std::string name = line.substr(8);
+            name.pop_back();
+            bool condition = defines.find(name) == defines.end();
+
+            ConditionalState state{ condition, condition };
             conditionalStack.push_back(state);
-            skipLine = true;
-        }
+            skipLine = !condition;
 
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
-
-    if (line.starts_with("#elseif_")) {
-        if (conditionalStack.empty()) {
-            std::cerr << "Error: #elseif_ without matching #if_ at line " << curr_row << std::endl;
-            skipLine = true;
             tokes.push_back(Toke('\n', 0, 1));
             return;
         }
 
-        if (conditionalStack.back().condition_met) {
-            skipLine = true;
-            tokes.push_back(Toke('\n', 0, 1));
-            return;
-        }
+        if (line.starts_with("#if_")) {
+            std::string condition = line.substr(line.find_first_of(' ') + 1);
+            condition.pop_back();
 
-        std::string condition = line.substr(line.find_first_of(' ') + 1);
-        condition.pop_back();
-
-        for (const auto& def : defines) {
-            size_t pos = 0;
-            while ((pos = condition.find(def.first, pos)) != std::string::npos) {
-                condition.replace(pos, def.first.length(), def.second);
-                pos += def.second.length();
+            for (const auto& def : defines) {
+                size_t pos = 0;
+                while ((pos = condition.find(def.first, pos)) != std::string::npos) {
+                    condition.replace(pos, def.first.length(), def.second);
+                    pos += def.second.length();
+                }
             }
-        }
 
-        try {
-            bool result = evaluateExpression(condition, defines);
-            conditionalStack.back().condition_state = result;
-            conditionalStack.back().condition_met |= result;
-            skipLine = !result;
-        }
-        catch (const std::exception& e) {
-            std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
-            skipLine = true;
-        }
+            try {
+                bool result = evaluateExpression(condition, defines);
+                ConditionalState state{ result, result };
+                conditionalStack.push_back(state);
+                skipLine = !result;
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
+                ConditionalState state{ false, false };
+                conditionalStack.push_back(state);
+                skipLine = true;
+            }
 
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
-
-    if (line.starts_with("#else_")) {
-        if (conditionalStack.empty()) {
-            std::cerr << "Error: #else_ without matching #if_ at line " << curr_row << std::endl;
-            skipLine = true;
             tokes.push_back(Toke('\n', 0, 1));
             return;
         }
 
-        bool shouldExecute = !conditionalStack.back().condition_met;
-        conditionalStack.back().condition_state = shouldExecute;
-        conditionalStack.back().condition_met |= shouldExecute;
-        skipLine = !shouldExecute;
+        if (line.starts_with("#elseif_")) {
+            if (conditionalStack.empty()) {
+                std::cerr << "Error: #elseif_ without matching #if_ at line " << curr_row << std::endl;
+                skipLine = true;
+                tokes.push_back(Toke('\n', 0, 1));
+                return;
+            }
 
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
+            if (conditionalStack.back().condition_met) {
+                skipLine = true;
+                tokes.push_back(Toke('\n', 0, 1));
+                return;
+            }
 
-    if (line.starts_with("#endif_")) {
-        if (!conditionalStack.empty()) {
-            conditionalStack.pop_back();
+            std::string condition = line.substr(line.find_first_of(' ') + 1);
+            condition.pop_back();
+
+            for (const auto& def : defines) {
+                size_t pos = 0;
+                while ((pos = condition.find(def.first, pos)) != std::string::npos) {
+                    condition.replace(pos, def.first.length(), def.second);
+                    pos += def.second.length();
+                }
+            }
+
+            try {
+                bool result = evaluateExpression(condition, defines);
+                conditionalStack.back().condition_state = result;
+                conditionalStack.back().condition_met |= result;
+                skipLine = !result;
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
+                skipLine = true;
+            }
+
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
+        }
+
+        if (line.starts_with("#else_")) {
+            if (conditionalStack.empty()) {
+                std::cerr << "Error: #else_ without matching #if_ at line " << curr_row << std::endl;
+                skipLine = true;
+                tokes.push_back(Toke('\n', 0, 1));
+                return;
+            }
+
+            bool shouldExecute = !conditionalStack.back().condition_met;
+            conditionalStack.back().condition_state = shouldExecute;
+            conditionalStack.back().condition_met |= shouldExecute;
+            skipLine = !shouldExecute;
+
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
+        }
+
+        if (line.starts_with("#endif_")) {
             if (!conditionalStack.empty()) {
-                skipLine = !conditionalStack.back().condition_state;
+                conditionalStack.pop_back();
+                if (!conditionalStack.empty()) {
+                    skipLine = !conditionalStack.back().condition_state;
+                }
+                else {
+                    skipLine = false;
+                }
             }
-            else {
-                skipLine = false;
-            }
+            tokes.push_back(Toke('\n', 0, 1));
+            return;
         }
-        tokes.push_back(Toke('\n', 0, 1));
-        return;
-    }
 
-    if (line.starts_with("#error"))
-    {
-        if (!skipLine) {
-            std::string errMsg = line.substr(7);
-            errMsg.pop_back();
-            std::cerr << "Error: " << errMsg << " at line " << curr_row << std::endl;
-            exit(1);
+        if (line.starts_with("#error"))
+        {
+            if (!skipLine) {
+                std::string errMsg = line.substr(7);
+                errMsg.pop_back();
+                std::cerr << "Error: " << errMsg << " at line " << curr_row << std::endl;
+                exit(1);
+            }
         }
     }
 
