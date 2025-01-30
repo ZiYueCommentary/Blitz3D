@@ -547,8 +547,8 @@ bool gxRuntime::delay(int ms) {
 ///////////////
 // DEBUGSTMT //
 ///////////////
-void gxRuntime::debugStmt(int pos, const char* file) {
-	if(debugger) debugger->debugStmt(pos, file);
+bool gxRuntime::debugStmt(int pos, const char* file) {
+	return debugger ? debugger->debugStmt(pos, file) : true;
 }
 
 ///////////////

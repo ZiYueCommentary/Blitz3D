@@ -18,7 +18,7 @@ class DummyDebugger : public Debugger {
 public:
 	virtual void debugRun() {}
 	virtual void debugStop() {}// bbruntime_panic(0); }
-	virtual void debugStmt(int srcpos, const char* file) {}
+	virtual bool debugStmt(int srcpos, const char* file) { return true; }
 	virtual void debugEnter(void* frame, void* env, const char* func) {}
 	virtual void debugLeave() {}
 	virtual void debugLog(const char* msg) {}

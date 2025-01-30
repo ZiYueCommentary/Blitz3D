@@ -177,7 +177,10 @@ void bbDebugLog(BBStr* t) {
 }
 
 void _bbDebugStmt(int pos, const char* file) {
-    gx_runtime->debugStmt(pos, file);
+    if (gx_runtime->debugStmt(pos, file)) {
+        return;
+    }
+
     if (!gx_runtime->idle()) RTEX(0);
 }
 

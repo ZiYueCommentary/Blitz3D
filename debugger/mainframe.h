@@ -29,7 +29,7 @@ public:
 
 	void debugRun();
 	void debugStop();
-	void debugStmt(int srcpos, const char* file);
+	bool debugStmt(int srcpos, const char* file);
 	void debugEnter(void* frame, void* env, const char* func);
 	void debugLeave();
 	void debugLog(const char* msg);

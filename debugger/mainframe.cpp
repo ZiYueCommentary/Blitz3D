@@ -184,13 +184,14 @@ void MainFrame::debugStop() {
 	showCurStmt();
 }
 
-void MainFrame::debugStmt(int pos, const char* file) {
+bool MainFrame::debugStmt(int pos, const char* file) {
 	cur_pos = pos;
 	cur_file = file;
 
-	if(shouldRun()) return;
+	if(shouldRun()) return true;
 
 	::PostMessage(0, WM_STOP, 0, 0);
+	return false;
 }
 
 void MainFrame::debugEnter(void* frame, void* env, const char* func) {
