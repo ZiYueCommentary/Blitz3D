@@ -13,6 +13,7 @@ int UTF8::measureCodepoint(char chr) {
 	int len = 0;
 	while (((chr >> (7 - len)) & 0x01) == 0x01) {
 		len++;
+		if (len > 8) return 8; // invalid!
 	}
 	return len;
 }
@@ -116,6 +117,19 @@ std::string UTF8::convertToAnsi(const std::string& str) {
 	delete[] szBuffer;
 	delete[] wszBuffer;
 	return converted;
+}
+
+bool UTF8::isValidUtf8String(const std::string& str) {
+	for (size_t i = 0; i < str.size();) {
+		int counts = measureCodepoint(str[i]);
+		if (counts > 4) return false;
+		for (size_t j = 1; j < counts; j++)
+		{
+			if ((str[i + 1] & 0xC0) != 0x80) return false;
+		}
+		i += counts;
+	}
+	return true;
 }
 
 int UTF8::length(const std::string& str) {

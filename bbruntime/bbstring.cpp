@@ -129,6 +129,12 @@ BBStr* bbHighPrecisionFloatString(float f) {
 	return new BBStr(stream.str());
 }
 
+int bbIsValidUTF8String(BBStr* s) {
+	int valid = UTF8::isValidUtf8String(s->c_str());
+	delete s;
+	return valid;
+}
+
 BBStr* bbCurrentDate() {
 	time_t t;
 	time(&t);
@@ -172,6 +178,7 @@ void string_link(void(*rtSym)(const char*, void*)) {
 	rtSym("$Hex%value", bbHex);
 	rtSym("$Bin%value", bbBin);
 	rtSym("$HighPrecisionFloatString#value", bbHighPrecisionFloatString);
+	rtSym("%IsValidUTF8String$str", bbIsValidUTF8String);
 	rtSym("$CurrentDate", bbCurrentDate);
 	rtSym("$CurrentTime", bbCurrentTime);
 }

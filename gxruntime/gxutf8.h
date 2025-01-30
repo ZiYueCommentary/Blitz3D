@@ -14,6 +14,7 @@ public:
     static int encodeCharacter(int chr, char* result);
     static std::string convertToUtf8(const std::string& str);
     static std::string convertToAnsi(const std::string& str);
+    static bool isValidUtf8String(const std::string& str);
     static int length(const std::string& str);
     static int find(const std::string& str, const std::string& sstr, int from);
     static void popBack(std::string& str);
