@@ -1,12 +1,16 @@
 #include "std.h"
-#include <cctype>
 #include "toker.h"
 #include "ex.h"
 #include "preprocessor.h"
+#include "../MultiLang/MultiLang.h"
+#include <cctype>
 #include <regex>
 #include <chrono>
+#include <functional>
 
 int Toker::chars_toked;
+
+std::map<std::string, std::string> MacroDefines;
 
 static std::map<std::string, int> alphaTokes, lowerTokes;
 
@@ -111,8 +115,10 @@ static void makeKeywords()
     made = true;
 }
 
-Toker::Toker(std::istream& in) :in(in), curr_row(-1)
+Toker::Toker(std::istream& in, bool debug) :in(in), curr_row(-1)
 {
+    MacroDefines["__DEBUG__"] = debug ? "true" : "false";
+    MacroDefines["__VERSION__"] = itoa((VERSION & 0xffff) / 1000) + "." + itoa((VERSION & 0xffff) % 1000);
     makeKeywords();
     nextline();
 }
@@ -146,14 +152,10 @@ int Toker::lookAhead(int n)
 
 void Toker::nextline()
 {
-    static std::map<std::string, std::string> defines;
     static std::vector<ConditionalState> conditionalStack;
     static bool skipLine = false;
     static const int maxMacroDepth = 100;
     static int macroDepth = 0;
-
-    defines["__DEBUG__"] = global_debug ? "true" : "false";
-    defines["__VERSION__"] = std::to_string(BASE_VER);
 
     ++curr_row;
     curr_toke = 0;
@@ -171,74 +173,41 @@ void Toker::nextline()
     getline(in, line); line += '\n';
     chars_toked += line.size();
 
-	// Test and strip leading whitespace's for preprocessor directives only
+    // Test and strip leading whitespace's for preprocessor directives only
     size_t firstNonWhitespace = line.find_first_not_of(" \t");
     if (firstNonWhitespace != std::string::npos)
     {
         std::string strippedLine = line.substr(firstNonWhitespace);
         if (strippedLine.starts_with("#"))
         {
-			line = strippedLine;
+            line = strippedLine;
         }
     }
 
-    auto isValidIdentifier = [](const std::string& str) {
-        if (str.empty() || !isalpha(str[0])) return false;
-        for (char c : str) {
-            if (!isalnum(c) && c != '_' && c != '(' && c != ')') return false;
-        }
-        return true;
-    };
-
-	if (line.starts_with("#")) // Only parse when a Preprocessor directive has been found with #
+    if (line.starts_with("#")) // Only parse when a Preprocessor directive has been found with #
     {
         if (line.starts_with("#define"))
         {
             if (!skipLine)
             {
                 std::string define = line.substr(8);
+                std::string name, content;
                 int sep = define.find(' ');
                 if (sep != std::string::npos)
                 {
-                    std::string name = define.substr(0, sep);
-                    std::string content = define.substr(sep + 1);
+                    name = define.substr(0, sep);
+                    content = define.substr(sep + 1);
                     content.pop_back();
-                    if (isValidIdentifier(name))
-                    {
-                        if (defines.find(name) == defines.end())
-                        {
-                            defines[name] = content;
-                        }
-                        else
-                        {
-                            std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
-                        }
-                    }
-                    else
-                    {
-                        std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
-                    }
                 }
                 else
                 {
-                    std::string name = define;
+                    name = define;
                     name.pop_back();
-                    if (isValidIdentifier(name))
-                    {
-                        if (defines.find(name) == defines.end())
-                        {
-                            defines[name] = "1";
-                        }
-                        else
-                        {
-                            std::cerr << "Error: Redefinition of macro " << name << " at line " << curr_row << std::endl;
-                        }
-                    }
-                    else
-                    {
-                        std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
-                    }
+                    content = "1";
                 }
+                if (!isValidIdentifier(name)) throw Ex(std::format(MultiLang::invalid_macro_name, name, curr_row));
+                if (MacroDefines.contains(name)) throw Ex(std::format(MultiLang::redefinition_of_macro, name, curr_row));
+                MacroDefines[name] = content;
             }
             tokes.push_back(Toke('\n', 0, 1));
             return;
@@ -250,14 +219,8 @@ void Toker::nextline()
             {
                 std::string name = line.substr(7);
                 name.pop_back();
-                if (isValidIdentifier(name))
-                {
-                    defines.erase(name);
-                }
-                else
-                {
-                    std::cerr << "Error: Invalid macro name " << name << " at line " << curr_row << std::endl;
-                }
+                if (!isValidIdentifier(name)) throw Ex(std::format(MultiLang::invalid_macro_name, name, curr_row));
+                MacroDefines.erase(name);
             }
             tokes.push_back(Toke('\n', 0, 1));
             return;
@@ -266,10 +229,9 @@ void Toker::nextline()
         if (line.starts_with("#ifdef")) {
             std::string name = line.substr(7);
             name.pop_back();
-            bool condition = defines.find(name) != defines.end();
+            bool condition = MacroDefines.contains(name);
 
-            ConditionalState state{ condition, condition };
-            conditionalStack.push_back(state);
+            conditionalStack.push_back({ condition, condition });
             skipLine = !condition;
 
             tokes.push_back(Toke('\n', 0, 1));
@@ -279,10 +241,9 @@ void Toker::nextline()
         if (line.starts_with("#ifndef")) {
             std::string name = line.substr(8);
             name.pop_back();
-            bool condition = defines.find(name) == defines.end();
+            bool condition = !MacroDefines.contains(name);
 
-            ConditionalState state{ condition, condition };
-            conditionalStack.push_back(state);
+            conditionalStack.push_back({ condition, condition });
             skipLine = !condition;
 
             tokes.push_back(Toke('\n', 0, 1));
@@ -293,7 +254,7 @@ void Toker::nextline()
             std::string condition = line.substr(line.find_first_of(' ') + 1);
             condition.pop_back();
 
-            for (const auto& def : defines) {
+            for (const auto& def : MacroDefines) {
                 size_t pos = 0;
                 while ((pos = condition.find(def.first, pos)) != std::string::npos) {
                     condition.replace(pos, def.first.length(), def.second);
@@ -302,15 +263,13 @@ void Toker::nextline()
             }
 
             try {
-                bool result = evaluateExpression(condition, defines);
-                ConditionalState state{ result, result };
-                conditionalStack.push_back(state);
+                bool result = evaluateExpression(condition);
+                conditionalStack.push_back({ result, result });
                 skipLine = !result;
             }
             catch (const std::exception& e) {
-                std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
-                ConditionalState state{ false, false };
-                conditionalStack.push_back(state);
+                throw Ex(std::format(MultiLang::error_evaluating_condition, e.what(), curr_row));
+                conditionalStack.push_back({ false, false });
                 skipLine = true;
             }
 
@@ -320,7 +279,7 @@ void Toker::nextline()
 
         if (line.starts_with("#elseif_")) {
             if (conditionalStack.empty()) {
-                std::cerr << "Error: #elseif_ without matching #if_ at line " << curr_row << std::endl;
+                throw Ex(std::format(MultiLang::elseif_without_if, curr_row));
                 skipLine = true;
                 tokes.push_back(Toke('\n', 0, 1));
                 return;
@@ -335,7 +294,7 @@ void Toker::nextline()
             std::string condition = line.substr(line.find_first_of(' ') + 1);
             condition.pop_back();
 
-            for (const auto& def : defines) {
+            for (const auto& def : MacroDefines) {
                 size_t pos = 0;
                 while ((pos = condition.find(def.first, pos)) != std::string::npos) {
                     condition.replace(pos, def.first.length(), def.second);
@@ -344,13 +303,13 @@ void Toker::nextline()
             }
 
             try {
-                bool result = evaluateExpression(condition, defines);
+                bool result = evaluateExpression(condition);
                 conditionalStack.back().condition_state = result;
                 conditionalStack.back().condition_met |= result;
                 skipLine = !result;
             }
             catch (const std::exception& e) {
-                std::cerr << "Error evaluating condition: " << e.what() << " at line " << curr_row << std::endl;
+                throw Ex(std::format(MultiLang::error_evaluating_condition, e.what(), curr_row));
                 skipLine = true;
             }
 
@@ -360,7 +319,7 @@ void Toker::nextline()
 
         if (line.starts_with("#else_")) {
             if (conditionalStack.empty()) {
-                std::cerr << "Error: #else_ without matching #if_ at line " << curr_row << std::endl;
+                throw Ex(std::format(MultiLang::else_without_if_macro, curr_row));
                 skipLine = true;
                 tokes.push_back(Toke('\n', 0, 1));
                 return;
@@ -394,7 +353,7 @@ void Toker::nextline()
             if (!skipLine) {
                 std::string errMsg = line.substr(7);
                 errMsg.pop_back();
-                std::cerr << "Error: " << errMsg << " at line " << curr_row << std::endl;
+                throw Ex(std::format(MultiLang::error_macro, errMsg, curr_row));
                 exit(1);
             }
         }
@@ -406,10 +365,10 @@ void Toker::nextline()
         return;
     }
 
-    for (const auto& def : defines)
+    for (const auto& def : MacroDefines)
     {
         static auto replaceAll =
-            [](const std::string_view& str, const std::map<std::string, std::string>& defines) {
+            [](const std::string_view& str, const std::map<std::string, std::string>& MacroDefines) {
             std::string result;
             result.reserve(str.size());
             size_t pos = 0;
@@ -424,7 +383,7 @@ void Toker::nextline()
                 }
 
                 bool matched = false;
-                for (const auto& [name, value] : defines) {
+                for (const auto& [name, value] : MacroDefines) {
                     size_t matchPos = str.find(name, pos);
                     if (matchPos == pos) {
                         bool isStartValid = (matchPos == 0 || !isalnum(str[matchPos - 1]) && str[matchPos - 1] != '_');
@@ -445,31 +404,67 @@ void Toker::nextline()
             }
 
             return result;
-        };
+            };
 
         if (++macroDepth > maxMacroDepth)
         {
-            std::cerr << "Error: Macro expansion depth exceeded at line " << curr_row << std::endl;
+            throw Ex(std::format(MultiLang::macro_exceeded, curr_row));
             exit(1);
         }
 
-        line = replaceAll(line, defines);
+        line = replaceAll(line, MacroDefines);
 
         --macroDepth;
     }
 
-    auto now = std::chrono::system_clock::now();
-    auto in_time_t = std::chrono::system_clock::to_time_t(now);
-    std::stringstream compilerDate, compilerTime;
+    static auto replaceAll =
+        [](const std::string_view& str, const std::string_view& pattern, std::function<std::string && ()> newpat) {
+        std::string result;
+        result.reserve(str.size());
 
-    compilerDate << std::put_time(std::localtime(&in_time_t), "%b %d %Y");
-    compilerTime << std::put_time(std::localtime(&in_time_t), "%H:%M:%S");
+        size_t pos = 0;
+        size_t prev_pos = 0;
+        bool in_quotes = false;
 
-    line = std::regex_replace(line, std::regex("__DATE__"), "\"" + compilerDate.str() + "\"");
-    line = std::regex_replace(line, std::regex("__TIME__"), "\"" + compilerTime.str() + "\"");
-    line = std::regex_replace(line, std::regex("__LINE__"), "\"" + std::to_string(curr_row + 1) + "\"");
-    line = std::regex_replace(line, std::regex("__VERSION__"), "\"" + std::to_string(BASE_VER) + "\"");
-    line = std::regex_replace(line, std::regex("__DEBUG__"), global_debug ? "1" : "0");
+        while (pos < str.size()) {
+            if (str[pos] == '"') {
+                in_quotes = !in_quotes;
+            }
+
+            if (!in_quotes && str.find(pattern, pos) == pos) {
+                result.append(str.substr(prev_pos, pos - prev_pos));
+                result.append(newpat());
+                pos += pattern.size();
+                prev_pos = pos;
+            }
+            else {
+                ++pos;
+            }
+        }
+
+        result.append(str.substr(prev_pos));
+        return std::move(result);
+        };
+
+    line = replaceAll(line, "__DATE__", []() -> std::string&& {
+        auto now = std::chrono::system_clock::now();
+        auto in_time_t = std::chrono::system_clock::to_time_t(now);
+        std::stringstream compilerDate;
+
+        compilerDate << std::put_time(std::localtime(&in_time_t), "%b %d %Y");
+        return std::move(compilerDate.str());
+        });
+    line = replaceAll(line, "__TIME__", []() -> std::string&& {
+        auto now = std::chrono::system_clock::now();
+        auto in_time_t = std::chrono::system_clock::to_time_t(now);
+        std::stringstream compilerTime;
+
+        compilerTime << std::put_time(std::localtime(&in_time_t), "%H:%M:%S");
+        return std::move(compilerTime.str());
+        });
+    line = replaceAll(line, "__LINE__", [&]() -> std::string&& {
+        return std::move(std::to_string(curr_row + 1));
+        });
 
     for (int k = 0; k < line.size(); )
     {
@@ -597,4 +592,12 @@ int Toker::next()
 {
     if (++curr_toke == tokes.size()) nextline();
     return curr();
+}
+
+bool Toker::isValidIdentifier(const std::string& str) {
+    if (str.empty() || !isalpha(str[0])) return false;
+    for (char c : str) {
+        if (!isalnum(c) && c != '_' && c != '(' && c != ')') return false;
+    }
+    return true;
 }

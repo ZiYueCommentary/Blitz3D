@@ -4,8 +4,6 @@
 #include <string>
 #include <map>
 
-extern bool global_debug;
-
 struct PreprocessorOps {
     std::string value;
     enum Type { NUMBER, BOOLEAN } type;
@@ -19,8 +17,10 @@ struct PreprocessorOps {
 
 bool isNumber(const std::string& s);
 
-PreprocessorOps evaluateOperation(const PreprocessorOps& lhs, const PreprocessorOps& rhs, const std::string& op);
+PreprocessorOps&& evaluateOperation(const PreprocessorOps& lhs, const PreprocessorOps& rhs, const std::string& op);
 
-bool evaluateExpression(const std::string& expr, const std::map<std::string, std::string>& defines);
+bool evaluateExpression(const std::string& expr);
+
+PreprocessorOps&& processToken(const std::string& token);
 
 #endif // EXPRESSION_EVALUATOR_H

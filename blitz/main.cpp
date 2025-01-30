@@ -246,7 +246,7 @@ int _cdecl main(int argc, char* argv[]) {
 	try {
 		//parse
 		if (!veryquiet) std::cout << "Parsing..." << std::endl;
-		Toker toker(in);
+		Toker toker(in, debug);
 		Parser parser(toker);
 		prog = parser.parse(in_file, debug);
 
