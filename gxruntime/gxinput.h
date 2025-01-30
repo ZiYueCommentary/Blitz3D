@@ -4,11 +4,22 @@
 #define DIRECTINPUT_VERSION 0x0800
 
 #include <dinput.h>
+#include <xinput.h>
 
 #include "gxdevice.h"
 #include <vector>
 
 class gxRuntime;
+
+class XInputController : public gxDevice {
+public:
+	int index;
+	XINPUT_STATE state;
+	XINPUT_STATE prev_state;
+
+	XInputController(int index);
+	void update();
+};
 
 class gxInput {
 public:
@@ -40,12 +51,15 @@ public:
 		ASC_UP = 28, ASC_DOWN = 29, ASC_RIGHT = 30, ASC_LEFT = 31
 	};
 
+	std::vector<XInputController*> xinput_controllers;
+
 	void moveMouse(int x, int y);
 
 	gxDevice* getMouse()const;
 	gxDevice* getKeyboard()const;
 	gxDevice* getJoystick(int port)const;
 	std::vector<int> getChars();
+	bool getControllerConnected(int port);
 	int getJoystickType(int port)const;
 	int numJoysticks()const;
 	int toAscii(int key)const;

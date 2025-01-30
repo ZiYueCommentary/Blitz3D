@@ -36,6 +36,8 @@ int		 bbJoyDown(int n, int port);
 int		 bbJoyHit(int n, int port);
 int		 bbGetJoy(int port);
 int		 bbWaitJoy(int port);
+int		 bbJoyCount();
+int		 bbJoyConnected(int port);
 float	 bbJoyX(int port);
 float	 bbJoyY(int port);
 float	 bbJoyZ(int port);
@@ -47,8 +49,12 @@ float	 bbJoyRoll(int port);
 int		 bbJoyXDir(int port);
 int		 bbJoyYDir(int port);
 int		 bbJoyZDir(int port);
+float	 bbJoyLeftTrigger(int port);
+float	 bbJoyRightTrigger(int port);
 int		 bbJoyUDir(int port);
 int		 bbJoyVDir(int port);
+void	 bbJoyVibrate(int port, float left, float right);
+void	 bbStopJoyVibrate(int port);
 void	 bbFlushJoy();
 
 #endif

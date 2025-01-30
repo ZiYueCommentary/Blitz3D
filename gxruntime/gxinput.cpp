@@ -3,6 +3,8 @@
 #include "gxruntime.h"
 
 #include <dinput.h>
+#include <xinput.h>
+#pragma comment(lib, "xinput.lib")
 
 static const int QUE_SIZE = 32;
 
@@ -231,9 +233,21 @@ gxInput::gxInput(gxRuntime* rt, IDirectInput8* di) :
 	mouse = createMouse(this);
 	joysticks.clear();
 	dirInput->EnumDevices(DI8DEVTYPE_JOYSTICK, enumJoystick, this, DIEDFL_ATTACHEDONLY);
+
+	for (int i = 0; i < XUSER_MAX_COUNT; i++) {
+		XINPUT_STATE state;
+		if (XInputGetState(i, &state) == ERROR_SUCCESS) {
+			xinput_controllers.push_back(new XInputController(i));
+		}
+	}
 }
 
 gxInput::~gxInput() {
+	for (size_t i = 0; i < xinput_controllers.size(); ++i) {
+		delete xinput_controllers[i];
+	}
+	xinput_controllers.clear();
+
 	for(int k = 0; k < joysticks.size(); ++k) delete joysticks[k];
 	joysticks.clear();
 	delete mouse;
@@ -312,7 +326,22 @@ gxDevice* gxInput::getKeyboard()const {
 	return keyboard;
 }
 
+bool gxInput::getControllerConnected(int port) {
+	if (port < xinput_controllers.size()) {
+		XINPUT_STATE state;
+		return XInputGetState(xinput_controllers[port]->index, &state) == ERROR_SUCCESS;
+	}
+
+	port -= xinput_controllers.size();
+	if (port >= 0 && port < joysticks.size()) {
+		return true;
+	}
+	return false;
+}
+
 gxDevice* gxInput::getJoystick(int n)const {
+	if(n < xinput_controllers.size()) return xinput_controllers[n];
+	n -= xinput_controllers.size();
 	return n >= 0 && n < joysticks.size() ? joysticks[n] : 0;
 }
 
@@ -323,11 +352,13 @@ std::vector<int> gxInput::getChars() {
 }
 
 int gxInput::getJoystickType(int n)const {
+	if (n < xinput_controllers.size()) return 3;
+	n -= xinput_controllers.size();
 	return n >= 0 && n < joysticks.size() ? joysticks[n]->type : 0;
 }
 
 int gxInput::numJoysticks()const {
-	return joysticks.size();
+	return (xinput_controllers.size() + joysticks.size());
 }
 
 int gxInput::toAscii(int scan)const {
@@ -361,4 +392,58 @@ int gxInput::toAscii(int scan)const {
 	WORD ch;
 	if(ToAscii(virt, scan, mat, &ch, 0) != 1) return 0;
 	return ch & 255;
+}
+
+XInputController::XInputController(int idx) : index(idx) {
+	memset(&state, 0, sizeof(XINPUT_STATE));
+	memset(&prev_state, 0, sizeof(XINPUT_STATE));
+	reset();
+}
+
+void XInputController::update() {
+	prev_state = state;
+	if (XInputGetState(index, &state) != ERROR_SUCCESS) {
+		memset(&state, 0, sizeof(XINPUT_STATE));
+		return;
+	}
+
+	// This based off mapping Xbox One Controller keys, unsure if 1:1 to other controllers
+	// For Thumbstick support
+	axis_states[0] = state.Gamepad.sThumbLX / 32767.0f;  // Left Thumbstick X
+	axis_states[1] = state.Gamepad.sThumbLY / 32767.0f;  // Left Thumbstick Y
+	axis_states[3] = state.Gamepad.sThumbRX / 32767.0f;  // Right Thumbstick X
+	axis_states[4] = state.Gamepad.sThumbRY / 32767.0f;  // Right Thumbstick Y
+
+	//Controller Triggers
+	axis_states[5] = state.Gamepad.bLeftTrigger / 255.0f;   // Left Trigger, goes from (0 to 1) based on controller pressure
+	axis_states[6] = state.Gamepad.bRightTrigger / 255.0f;  // Right Trigger, goes from (0 to 1) based on controller pressure
+
+	// Differential Trigger (for backward compatibility :P with Z)
+	axis_states[2] = axis_states[5] - axis_states[6];  // -1 to 1 range
+
+	// Update button states
+	const WORD buttons = state.Gamepad.wButtons;
+	for (int i = 0; i < 23; ++i) {
+		setDownState(i, (buttons & (1 << i)) ? true : false);
+	}
+
+	// D-PAD/POV Hat hook
+	int pov = -1;
+	if (buttons & XINPUT_GAMEPAD_DPAD_UP) {
+		if (buttons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 45;
+		else if (buttons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 315;
+		else pov = 0;
+	}
+	else if (buttons & XINPUT_GAMEPAD_DPAD_DOWN) {
+		if (buttons & XINPUT_GAMEPAD_DPAD_RIGHT) pov = 135;
+		else if (buttons & XINPUT_GAMEPAD_DPAD_LEFT) pov = 225;
+		else pov = 180;
+	}
+	else if (buttons & XINPUT_GAMEPAD_DPAD_RIGHT) {
+		pov = 90;
+	}
+	else if (buttons & XINPUT_GAMEPAD_DPAD_LEFT) {
+		pov = 270;
+	}
+	axis_states[8] = pov; // Store for JoyHat support later
 }

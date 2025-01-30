@@ -150,6 +150,11 @@ int bbJoyType(int port) {
 	return gx_input->getJoystickType(port);
 }
 
+int bbJoyConnected(int port) {
+	if (!gx_input) return 0;
+	return gx_input->getControllerConnected(port) ? 1 : 0;
+}
+
 int bbJoyDown(int n, int port) {
 	if (port < 0 || port >= gx_joysticks.size()) return 0;
 	return gx_joysticks[port]->keyDown(n);
@@ -201,21 +206,27 @@ float bbJoyV(int port) {
 
 float bbJoyPitch(int port) {
 	if (port < 0 || port >= gx_joysticks.size()) return 0;
-	return gx_joysticks[port]->getAxisState(5) * 180;
+	return gx_input->getJoystickType(port) == 3 ?
+		gx_joysticks[port]->getAxisState(4) * 180 :
+		gx_joysticks[port]->getAxisState(5) * 180;
 }
 
 float bbJoyYaw(int port) {
 	if (port < 0 || port >= gx_joysticks.size()) return 0;
-	return gx_joysticks[port]->getAxisState(6) * 180;
+	return gx_input->getJoystickType(port) == 3 ?
+		gx_joysticks[port]->getAxisState(3) * 180 :
+		gx_joysticks[port]->getAxisState(6) * 180;
 }
 
 float bbJoyRoll(int port) {
 	if (port < 0 || port >= gx_joysticks.size()) return 0;
-	return gx_joysticks[port]->getAxisState(7) * 180;
+	return gx_input->getJoystickType(port) == 3 ?
+		gx_joysticks[port]->getAxisState(2) * 90 :
+		gx_joysticks[port]->getAxisState(7) * 180;
 }
 
-int  bbJoyHat(int port) {
-	if (port < 0 || port >= gx_joysticks.size()) return 0;
+int bbJoyHat(int port) {
+	if (port < 0 || port >= gx_joysticks.size()) return -1;
 	return gx_joysticks[port]->getAxisState(8);
 }
 
@@ -237,6 +248,22 @@ int	bbJoyZDir(int port) {
 	return t < JLT ? -1 : (t > JHT ? 1 : 0);
 }
 
+float bbJoyLeftTrigger(int port) {
+	if (port < 0 || port >= gx_joysticks.size()) return 0;
+	if (gx_input->getJoystickType(port) == 3) {
+		return gx_joysticks[port]->getAxisState(5);
+	}
+	return gx_joysticks[port]->getAxisState(2); // Default to Z of Joystick for compatibility support
+}
+
+float bbJoyRightTrigger(int port) {
+	if (port < 0 || port >= gx_joysticks.size()) return 0;
+	if (gx_input->getJoystickType(port) == 3) {
+		return gx_joysticks[port]->getAxisState(6);
+	}
+	return 0; // No fallback, just return early
+}
+
 int	bbJoyUDir(int port) {
 	if (port < 0 || port >= gx_joysticks.size()) return 0;
 	float t = gx_joysticks[port]->getAxisState(3);
@@ -247,6 +274,24 @@ int	bbJoyVDir(int port) {
 	if (port < 0 || port >= gx_joysticks.size()) return 0;
 	float t = gx_joysticks[port]->getAxisState(4);
 	return t < JLT ? -1 : (t > JHT ? 1 : 0);
+}
+
+void bbJoyVibrate(int port, float left, float right) {
+	if (port < 0 || port >= gx_joysticks.size()) return;
+	if (gx_input->getJoystickType(port) == 3) {
+		XINPUT_VIBRATION vibration;
+		vibration.wLeftMotorSpeed = static_cast<WORD>(left * 65535);
+		vibration.wRightMotorSpeed = static_cast<WORD>(right * 65535);
+		XInputSetState(port, &vibration);
+	}
+}
+
+void bbStopJoyVibrate(int port) {
+	bbJoyVibrate(port, 0, 0);
+}
+
+int bbJoyCount() {
+	return gx_input ? gx_input->numJoysticks() : 0;
 }
 
 void bbFlushJoy() {
@@ -288,6 +333,8 @@ void input_link(void (*rtSym)(const char* sym, void* pc)) {
 	rtSym("%JoyHit%button%port=0", bbJoyHit);
 	rtSym("%GetJoy%port=0", bbGetJoy);
 	rtSym("%WaitJoy%port=0", bbWaitJoy);
+	rtSym("%JoyCount", bbJoyCount);
+	rtSym("%JoyConnected%port=0", bbJoyConnected);
 	rtSym("%JoyWait%port=0", bbWaitJoy);
 	rtSym("#JoyX%port=0", bbJoyX);
 	rtSym("#JoyY%port=0", bbJoyY);
@@ -301,8 +348,12 @@ void input_link(void (*rtSym)(const char* sym, void* pc)) {
 	rtSym("%JoyXDir%port=0", bbJoyXDir);
 	rtSym("%JoyYDir%port=0", bbJoyYDir);
 	rtSym("%JoyZDir%port=0", bbJoyZDir);
+	rtSym("#JoyLeftTrigger%port=0", bbJoyLeftTrigger);
+	rtSym("#JoyRightTrigger%port=0", bbJoyRightTrigger);
 	rtSym("%JoyUDir%port=0", bbJoyUDir);
 	rtSym("%JoyVDir%port=0", bbJoyVDir);
+	rtSym("JoyVibrate%port#left#right", bbJoyVibrate);
+	rtSym("StopJoyVibrate%port", bbStopJoyVibrate);
 	rtSym("FlushJoy", bbFlushJoy);
 
 	rtSym("EnableDirectInput%enable", bbEnableDirectInput);
