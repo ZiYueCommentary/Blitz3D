@@ -9,6 +9,13 @@
 #include "gxdevice.h"
 #include <vector>
 
+// Messy order, messy problem;
+typedef DWORD(WINAPI* XInputGetStatePtr)(DWORD, XINPUT_STATE*);
+typedef DWORD(WINAPI* XInputSetStatePtr)(DWORD, XINPUT_VIBRATION*);
+extern XInputGetStatePtr XInputGetStateFunc;
+extern XInputSetStatePtr XInputSetStateFunc;
+extern HMODULE xinputLibrary;
+
 class gxRuntime;
 
 class XInputController : public gxDevice {

@@ -4,9 +4,43 @@
 
 #include <dinput.h>
 #include <xinput.h>
-#pragma comment(lib, "xinput.lib")
 
 static const int QUE_SIZE = 32;
+
+XInputGetStatePtr XInputGetStateFunc = nullptr;
+XInputSetStatePtr XInputSetStateFunc = nullptr;
+HMODULE xinputLibrary = nullptr;
+
+void UnloadXInput() {
+	if (xinputLibrary) {
+		FreeLibrary(xinputLibrary);
+		xinputLibrary = nullptr;
+		XInputGetStateFunc = nullptr;
+		XInputSetStateFunc = nullptr;
+	}
+}
+
+bool LoadXInput() {
+	// Try to load xinput1_4.dll (Windows 8 and later) for analysis
+	xinputLibrary = LoadLibraryW(L"xinput1_4.dll");
+	if (!xinputLibrary) {
+		// Fall back to xinput9_1_0.dll (Windows 7 and earlier) for analysis
+		xinputLibrary = LoadLibraryW(L"xinput9_1_0.dll");
+	}
+
+	// Once we're able to get the dll loaded, check for specific function pointer addresses
+	if (xinputLibrary) {
+		XInputGetStateFunc = (XInputGetStatePtr)GetProcAddress(xinputLibrary, "XInputGetState");
+		XInputSetStateFunc = (XInputSetStatePtr)GetProcAddress(xinputLibrary, "XInputSetState");
+		if (XInputGetStateFunc && XInputSetStateFunc) {
+			// All good and defined, return success
+			return true;
+		}
+		// Only unload here since it wouldn't succeed it if we didn't get here in the first place
+		UnloadXInput();
+	}
+	return false;
+}
 
 class Device : public gxDevice {
 public:
@@ -234,10 +268,14 @@ gxInput::gxInput(gxRuntime* rt, IDirectInput8* di) :
 	joysticks.clear();
 	dirInput->EnumDevices(DI8DEVTYPE_JOYSTICK, enumJoystick, this, DIEDFL_ATTACHEDONLY);
 
-	for (int i = 0; i < XUSER_MAX_COUNT; i++) {
-		XINPUT_STATE state;
-		if (XInputGetState(i, &state) == ERROR_SUCCESS) {
-			xinput_controllers.push_back(new XInputController(i));
+	if (LoadXInput()) {
+		for (int i = 0; i < XUSER_MAX_COUNT; i++) {
+			if (XInputGetStateFunc) {
+				XINPUT_STATE state;
+				if (XInputGetStateFunc(i, &state) == ERROR_SUCCESS) {
+					xinput_controllers.push_back(new XInputController(i));
+				}
+			}
 		}
 	}
 }
@@ -254,6 +292,7 @@ gxInput::~gxInput() {
 	delete keyboard;
 
 	dirInput->Release();
+	UnloadXInput();
 }
 
 void gxInput::wm_keydown(int key) {
@@ -329,7 +368,9 @@ gxDevice* gxInput::getKeyboard()const {
 bool gxInput::getControllerConnected(int port) {
 	if (port < xinput_controllers.size()) {
 		XINPUT_STATE state;
-		return XInputGetState(xinput_controllers[port]->index, &state) == ERROR_SUCCESS;
+		if (XInputGetStateFunc) {
+			return XInputGetStateFunc(xinput_controllers[port]->index, &state) == ERROR_SUCCESS;
+		}
 	}
 
 	port -= xinput_controllers.size();
@@ -402,9 +443,11 @@ XInputController::XInputController(int idx) : index(idx) {
 
 void XInputController::update() {
 	prev_state = state;
-	if (XInputGetState(index, &state) != ERROR_SUCCESS) {
-		memset(&state, 0, sizeof(XINPUT_STATE));
-		return;
+	if (XInputGetStateFunc) {
+		if (XInputGetStateFunc(index, &state) != ERROR_SUCCESS) {
+			memset(&state, 0, sizeof(XINPUT_STATE));
+			return;
+		}
 	}
 
 	// This based off mapping Xbox One Controller keys, unsure if 1:1 to other controllers
