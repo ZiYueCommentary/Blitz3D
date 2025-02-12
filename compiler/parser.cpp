@@ -45,6 +45,7 @@ void Parser::ex(const std::string& s) {
 void Parser::exp(const std::string& s) {
 	switch (toker->curr()) {
 	case NEXT:ex(MultiLang::next_without_for);
+	case CONTINUE:ex(MultiLang::continue_without_for);
 	case WEND:ex(MultiLang::wend_without_while);
 	case ELSE:case ELSEIF:ex(MultiLang::else_without_if);
 	case ENDIF:ex(MultiLang::endif_without_if);
@@ -247,6 +248,11 @@ void Parser::parseStmtSeq(StmtSeqNode* stmts, int scope, bool debug, bool prepro
 				toker->next();
 				result = new ForNode(var.release(), from.release(), to.release(), step.release(), stmts.release(), pos);
 			}
+		}
+		break;
+		case CONTINUE:
+		{
+			toker->next(); result = new ContinueNode();
 		}
 		break;
 		case EXIT:

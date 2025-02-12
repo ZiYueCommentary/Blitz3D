@@ -263,6 +263,17 @@ void ExitNode::translate(Codegen* g) {
 	g->code(new TNode(IR_JUMP, 0, 0, sem_brk));
 }
 
+//////////////
+// Continue //
+//////////////
+void ContinueNode::semant(Environ* e) {
+	sem_cont = e->continueLabel;
+	if (!sem_cont.size()) ex(MultiLang::continue_must_appear_inside_loop);
+}
+void ContinueNode::translate(Codegen* g) {
+	g->code(new TNode(IR_JUMP, 0, 0, sem_cont));
+}
+
 /////////////////////
 // While statement //
 /////////////////////
@@ -270,8 +281,10 @@ void WhileNode::semant(Environ* e) {
 	expr = expr->semant(e);
 	expr = expr->castTo(Type::int_type, e);
 	std::string brk = e->setBreak(sem_brk = genLabel());
+	std::string cont = e->setContinue(sem_cont = genLabel());
 	stmts->semant(e);
 	e->setBreak(brk);
+	e->setContinue(cont);
 }
 
 void WhileNode::translate(Codegen* g) {
@@ -284,6 +297,7 @@ void WhileNode::translate(Codegen* g) {
 	}
 	else {
 		std::string cond = genLabel();
+		g->label(sem_cont);
 		g->code(jump(cond));
 		g->label(loop);
 		stmts->translate(g);
@@ -326,8 +340,10 @@ void ForNode::semant(Environ* e) {
 	if(!stepExpr->constNode()) ex(MultiLang::step_value_must_constant);
 
 	std::string brk = e->setBreak(sem_brk = genLabel());
+	std::string cont = e->setContinue(sem_cont = genLabel());
 	stmts->semant(e);
 	e->setBreak(brk);
+	e->setContinue(cont);
 }
 
 void ForNode::translate(Codegen* g) {
@@ -345,6 +361,7 @@ void ForNode::translate(Codegen* g) {
 
 	//execute the step part
 	debug(nextPos, g);
+	g->label(sem_cont);
 	int op = ty == Type::int_type ? IR_ADD : IR_FADD;
 	t = new TNode(op, var->load(g), stepExpr->translate(g));
 	g->code(var->store(g, t));
@@ -371,8 +388,10 @@ void ForEachNode::semant(Environ* e) {
 	if (t != ty) ex(MultiLang::type_mismatch);
 
 	std::string brk = e->setBreak(sem_brk = genLabel());
+	std::string cont = e->setContinue(sem_cont = genLabel());
 	stmts->semant(e);
 	e->setBreak(brk);
+	e->setContinue(cont);
 }
 
 void ForEachNode::translate(Codegen* g) {
@@ -399,6 +418,7 @@ void ForEachNode::translate(Codegen* g) {
 	stmts->translate(g);
 
 	debug(nextPos, g);
+	g->label(sem_cont);
 	t = jumpt(call(objNext, var->translate(g)), _loop);
 	g->code(t);
 
@@ -551,9 +571,12 @@ void SelectNode::translate(Codegen* g) {
 ////////////////////////////
 void RepeatNode::semant(Environ* e) {
 	sem_brk = genLabel();
+	sem_cont = genLabel();
 	std::string brk = e->setBreak(sem_brk);
+	std::string cont = e->setContinue(sem_cont);
 	stmts->semant(e);
 	e->setBreak(brk);
+	e->setContinue(cont);
 	if(expr) {
 		expr = expr->semant(e);
 		expr = expr->castTo(Type::int_type, e);
@@ -563,6 +586,7 @@ void RepeatNode::semant(Environ* e) {
 void RepeatNode::translate(Codegen* g) {
 
 	std::string loop = genLabel();
+	g->label(sem_cont);
 	g->label(loop);
 	stmts->translate(g);
 	debug(untilPos, g);

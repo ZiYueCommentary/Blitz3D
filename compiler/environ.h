@@ -21,7 +21,7 @@ public:
 	std::vector<Label*> labels;
 	Environ* globals;
 	Type* returnType;
-	std::string funcLabel, breakLabel;
+	std::string funcLabel, breakLabel, continueLabel;
 	std::list<Environ*> children;		//for delete!
 
 	Environ(const std::string& f, Type* r, int l, Environ* gs);
@@ -34,6 +34,7 @@ public:
 	Label* insertLabel(const std::string& s, int def, int src, int sz);
 
 	std::string setBreak(const std::string& s);
+	std::string setContinue(const std::string& s);
 };
 
 #endif

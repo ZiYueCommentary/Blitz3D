@@ -66,3 +66,8 @@ std::string Environ::setBreak(const std::string& s) {
     std::string t = breakLabel;
     breakLabel = s; return t;
 }
+
+std::string Environ::setContinue(const std::string& s) {
+    std::string t = continueLabel;
+    continueLabel = s; return t;
+}

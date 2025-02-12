@@ -37,6 +37,7 @@ static void makeKeywords()
     alphaTokes["To"] = TO;
     alphaTokes["Step"] = STEP;
     alphaTokes["Next"] = NEXT;
+    alphaTokes["Continue"] = CONTINUE;
     alphaTokes["Function"] = FUNCTION;
     alphaTokes["End Function"] = ENDFUNCTION;
     alphaTokes["Type"] = TYPE;

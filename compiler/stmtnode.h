@@ -111,11 +111,17 @@ struct ExitNode : public StmtNode {
 	void translate(Codegen* g);
 };
 
+struct ContinueNode : public StmtNode {
+	std::string sem_cont;
+	void semant(Environ* e);
+	void translate(Codegen* g);
+};
+
 struct WhileNode : public StmtNode {
 	int wendPos;
 	ExprNode* expr;
 	StmtSeqNode* stmts;
-	std::string sem_brk;
+	std::string sem_brk, sem_cont;
 	WhileNode(ExprNode* e, StmtSeqNode* s, int wp) :expr(e), stmts(s), wendPos(wp) {}
 	~WhileNode() { delete expr; delete stmts; }
 	void semant(Environ* e);
@@ -127,7 +133,7 @@ struct ForNode : public StmtNode {
 	VarNode* var;
 	ExprNode* fromExpr, * toExpr, * stepExpr;
 	StmtSeqNode* stmts;
-	std::string sem_brk;
+	std::string sem_brk, sem_cont;
 	ForNode(VarNode* v, ExprNode* f, ExprNode* t, ExprNode* s, StmtSeqNode* ss, int np);
 	~ForNode();
 	void semant(Environ* e);
@@ -139,7 +145,7 @@ struct ForEachNode : public StmtNode {
 	VarNode* var;
 	std::string typeIdent;
 	StmtSeqNode* stmts;
-	std::string sem_brk;
+	std::string sem_brk, sem_cont;
 	ForEachNode(VarNode* v, const std::string& t, StmtSeqNode* s, int np) :var(v), typeIdent(t), stmts(s), nextPos(np) {}
 	~ForEachNode() { delete var; delete stmts; }
 	void semant(Environ* e);
@@ -202,7 +208,7 @@ struct RepeatNode : public StmtNode {
 	int untilPos;
 	StmtSeqNode* stmts;
 	ExprNode* expr;
-	std::string sem_brk;
+	std::string sem_brk, sem_cont;
 	RepeatNode(StmtSeqNode* s, ExprNode* e, int up) :stmts(s), expr(e), untilPos(up) {}
 	~RepeatNode() { delete stmts; delete expr; }
 	void semant(Environ* e);
