@@ -103,7 +103,7 @@ public:
 	gxMovie* verifyMovie(gxMovie* movie);
 	void closeMovie(gxMovie* movie);
 
-	gxFont* loadFont(std::string font, int height, bool bold = false, bool italic = false, bool underlined = false);
+	gxFont* loadFont(const std::string& font, int height, bool bold = false, bool italic = false, bool underlined = false);
 	gxFont* verifyFont(gxFont* font);
 	void freeFont(gxFont* font);
 

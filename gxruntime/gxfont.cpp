@@ -13,281 +13,102 @@
 
 gxFont::gxFont(FT_Library ftLibrary, gxGraphics* gfx, const std::string& fn, int h, bool bold, bool italic, bool underlined) {
 	graphics = gfx;
-	filename = fn;
 	height = h;
-	this->bold = bold;
-	this->italic = italic;
-	this->underlined = underlined;
 
+	FT_Face face;
 	if (FT_New_Face(ftLibrary,
-		filename.c_str(),
+		fn.c_str(),
 		0,
-		&freeTypeFace)) {
+		&face)) {
 		RTEX(std::format("Failed to load file: {}", fn).c_str());
 	}
 
-	FT_Set_Pixel_Sizes(freeTypeFace,
-		0,
-		height);
-
-	glyphData.clear();
-	atlases.clear();
-
-	glyphHeight = height;
-	renderAtlas('T');
-	std::map<int, GlyphData>::iterator it = glyphData.find('T');
-	if(it != glyphData.end()) {
-		const GlyphData& gd = it->second;
-
-		glyphHeight = gd.srcRect[3];
-		glyphRenderOffset = -gd.drawOffset[1];
-	}
-
-	tCanvasHeight = (glyphHeight * 40) / 10;
-	glyphRenderBaseline = (glyphHeight * 3 / 10);
-	glyphRenderOffset += glyphRenderBaseline;
+	desc = pango_font_description_from_string(std::format("{0} {1}", face->family_name, h - 5).c_str());
+	FT_Done_Face(face);
 
 	tempCanvas = nullptr;
 }
 
 gxFont::~gxFont() {
-	for(int i = 0; i < atlases.size(); i++) {
-		graphics->freeCanvas(atlases[i]);
-	}
-
-	FT_Done_Face(freeTypeFace);
+	pango_font_description_free(desc);
 }
 
 const int transparentPixel = 0x4A412A;
 const int opaquePixel = 0xffffff;
 
-void gxFont::renderAtlas(int chr) {
-	bool needsNewAtlas = false;
-
-	int startChr = chr - 1024;
-	if(startChr < 0) { startChr = 0; }
-	int endChr = startChr + 2048;
-
-	bool* buffer = nullptr;
-	int x = -1; int y = -1;
-	int maxHeight = -1;
-	for(int i = startChr; i < endChr; i++) {
-		std::map<int, GlyphData>::iterator it = glyphData.find(i);
-		if(it == glyphData.end()) {
-			long glyphIndex = FT_Get_Char_Index(freeTypeFace, i);
-			FT_Load_Glyph(freeTypeFace,
-				(FT_UInt)glyphIndex,
-				FT_LOAD_TARGET_MONO);
-			if(glyphIndex != 0) {
-				if (bold)
-				{
-					FT_GlyphSlot_Embolden(freeTypeFace->glyph);
-				}
-
-				if (italic)
-				{
-					FT_GlyphSlot_Oblique(freeTypeFace->glyph);
-				}
-
-				FT_Render_Glyph(freeTypeFace->glyph,
-					FT_RENDER_MODE_MONO);
-				unsigned char* glyphBuffer = freeTypeFace->glyph->bitmap.buffer;
-				int glyphPitch = freeTypeFace->glyph->bitmap.pitch;
-				int glyphWidth = freeTypeFace->glyph->bitmap.width;
-				int glyphHeight = freeTypeFace->glyph->bitmap.rows;
-
-				if(glyphWidth > 0 && glyphHeight > 0) {
-					if(buffer == nullptr) {
-						buffer = new bool[atlasDims * atlasDims];
-						for(int j = 0; j < atlasDims * atlasDims; j++) {
-							buffer[j] = false;
-						}
-						x = 1; y = 1; maxHeight = 0;
-					}
-
-					if(x + glyphWidth + 1 > atlasDims - 1) {
-						x = 1; y += maxHeight + 1;
-						maxHeight = 0;
-					}
-					if(y + glyphHeight + 1 > atlasDims - 1) {
-						needsNewAtlas = true;
-						break;
-					}
-					if(glyphHeight > maxHeight) maxHeight = glyphHeight;
-
-					int bitPitch = glyphPitch * 8;
-					for(int j = 0; j < glyphPitch * glyphHeight; j++) {
-						for(int k = 0; k < 8; k++) {
-							if((j * 8 + k) % bitPitch >= glyphWidth) continue;
-							int bufferPos = x + y * atlasDims;
-							bufferPos += (j * 8 + k) % bitPitch + ((j / glyphPitch) * atlasDims);
-							buffer[bufferPos] = (glyphBuffer[j] & (1 << (7 - k))) > 0;
-						}
-					}
-
-					GlyphData gd;
-					gd.atlasIndex = (int)atlases.size();
-					gd.horizontalAdvance = freeTypeFace->glyph->metrics.horiAdvance >> 6;
-					gd.drawOffset[0] = -freeTypeFace->glyph->bitmap_left;
-					gd.drawOffset[1] = freeTypeFace->glyph->bitmap_top - ((height * 10) / 14);
-					gd.srcRect[0] = x;
-					gd.srcRect[1] = y;
-					gd.srcRect[2] = glyphWidth;
-					gd.srcRect[3] = glyphHeight;
-
-					if(glyphWidth > maxWidth) { maxWidth = glyphWidth; }
-
-					x += glyphWidth + 1;
-
-					glyphData.emplace(i, gd);
-				}
-				else {
-					GlyphData gd;
-					gd.atlasIndex = -1;
-					gd.horizontalAdvance = freeTypeFace->glyph->metrics.horiAdvance >> 6;
-					glyphData.emplace(i, gd);
-				}
-			}
-			else {
-				GlyphData gd;
-				gd.atlasIndex = -1;
-				gd.horizontalAdvance = freeTypeFace->glyph->metrics.horiAdvance >> 6;
-				glyphData.emplace(i, gd);
-			}
-		}
-	}
-
-	if(buffer != nullptr) {
-		gxCanvas* newAtlas = graphics->createCanvas(atlasDims, atlasDims, 0);
-		newAtlas->lock();
-		for(int y = 0; y < atlasDims; y++) {
-			for(int x = 0; x < atlasDims; x++)
-				newAtlas->setPixelFast(x, y, buffer[x + (y * atlasDims)] ? opaquePixel : transparentPixel);
-		}
-		newAtlas->unlock();
-		newAtlas->setMask(0xffffff);
-		newAtlas->backup();
-		atlases.push_back(newAtlas);
-		delete[] buffer;
-	}
-
-	if(needsNewAtlas) renderAtlas(chr);
-}
-
 void gxFont::render(gxCanvas* dest, unsigned color_argb, int x, int y, const std::string& text) {
-	int width = stringWidth(text);
-	if(tempCanvas == nullptr || width > tempCanvas->getWidth()) {
+	auto [width, height] = stringWidthHeight(text); // modern!
+	if(tempCanvas == nullptr || width > tempCanvas->getWidth() || height > tempCanvas->getHeight()) {
 		graphics->freeCanvas(tempCanvas);
-		tempCanvas = graphics->createCanvas(width, tCanvasHeight, 0);
-		tempCanvas->setMask(transparentPixel);
+		tempCanvas = graphics->createCanvas(width, height, 0);
 	}
 
 	if((color_argb & 0xffffff) == transparentPixel) { color_argb++; }
-	tempCanvas->setColor(transparentPixel);
-	tempCanvas->rect(0, 0, width, tCanvasHeight, true);
-	tempCanvas->setColor(color_argb);
 
-	int t_x = 0;
+	cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_A1, width, height);
+	cairo_t* cr = cairo_create(surface);
+	PangoLayout* layout = pango_cairo_create_layout(cr);
+	pango_layout_set_text(layout, text.c_str(), text.length());
+	pango_layout_set_font_description(layout, this->desc);
+	//cairo_set_antialias(cr, CAIRO_ANTIALIAS_SUBPIXEL);
+	cairo_set_source_rgb(cr, RGBA_GETRED(color_argb), RGBA_GETGREEN(color_argb), RGBA_GETBLUE(color_argb));
+	pango_cairo_update_layout(cr, layout);
+	pango_cairo_show_layout(cr, layout);
+	
+	int baseline = PANGO_PIXELS(pango_layout_get_baseline(layout));
 
-	for(int i = 0; i < text.size();) {
-		int codepointLen = UTF8::measureCodepoint(text[i]);
-		int chr = UTF8::decodeCharacter(text.c_str(), i);
-		std::map<int, GlyphData>::iterator it = glyphData.find(chr);
-		if(it == glyphData.end()) {
-			renderAtlas(chr);
-			it = glyphData.find(chr);
+	tempCanvas->lock();
+	unsigned char* data = cairo_image_surface_get_data(surface);
+	int stride = cairo_image_surface_get_stride(surface);
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			int byte_index = y * stride + x / 8;
+			int bit_index = x % 8;
+			unsigned char pixel = (data[byte_index] >> bit_index) & 1;
+
+			tempCanvas->setPixelFast(x, y, pixel ? color_argb : transparentPixel);
 		}
-
-		if(it != glyphData.end()) {
-			const GlyphData& gd = it->second;
-
-			if(gd.atlasIndex >= 0) {
-				tempCanvas->rect(t_x - gd.drawOffset[0], glyphRenderBaseline - gd.drawOffset[1], gd.srcRect[2], gd.srcRect[3], true);
-				tempCanvas->blit(t_x - gd.drawOffset[0], glyphRenderBaseline - gd.drawOffset[1], atlases[gd.atlasIndex], gd.srcRect[0], gd.srcRect[1], gd.srcRect[2], gd.srcRect[3], false);
-			}
-			t_x += gd.horizontalAdvance;
-		}
-		i += codepointLen;
 	}
+	
+	tempCanvas->unlock();
+	tempCanvas->setMask(transparentPixel);
 
-	if (underlined)
-	{
-		tempCanvas->rect(0, static_cast<int>(getBaselinePosition() + getUnderlinePosition()), width, max(1, static_cast<int>(getUnderlineThickness())), true);
-	}
+	g_object_unref(layout);
+	cairo_destroy(cr);
+	cairo_surface_destroy(surface);
 
-	dest->blit(x, y - glyphRenderOffset, tempCanvas, 0, 0, width, tCanvasHeight, false);
+	dest->blit(x, y/*todo baseline*/, tempCanvas, 0, 0, width, height, false);
 }
 
-int gxFont::charWidth(int chr) {
-	std::map<int, GlyphData>::iterator it = glyphData.find(chr);
-	if(it == glyphData.end()) {
-		renderAtlas(chr);
-		it = glyphData.find(chr);
-	}
-	return it->second.srcRect[2];
+std::pair<int, int> gxFont::stringWidthHeight(const std::string& text) const {
+	cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_A1, 0, 0);
+	cairo_t* cr = cairo_create(surface);
+	PangoLayout* layout = pango_cairo_create_layout(cr);
+	pango_layout_set_text(layout, text.c_str(), text.length());
+	pango_layout_set_font_description(layout, this->desc);
+	
+	int width, height;
+	pango_layout_get_size(layout, &width, &height);
+	width = PANGO_PIXELS(width);
+	height = PANGO_PIXELS(height);
+
+	g_object_unref(layout);
+	cairo_destroy(cr);
+	cairo_surface_destroy(surface);
+
+	return std::make_pair(width, height);
 }
 
-int gxFont::charAdvance(int chr) {
-	std::map<int, GlyphData>::iterator it = glyphData.find(chr);
-	if(it == glyphData.end()) {
-		renderAtlas(chr);
-		it = glyphData.find(chr);
-	}
-	return it != glyphData.end() ? it->second.horizontalAdvance : 0;
+int gxFont::getHeight(const std::string& text) const {
+	auto [width, height] = stringWidthHeight(text);
+	return height;
 }
 
-int gxFont::stringWidth(const std::string& text) {
-	int width = 0;
-
-	for(int i = 0; i < text.size();) {
-		int codepointLen = UTF8::measureCodepoint(text[i]);
-		int chr = UTF8::decodeCharacter(text.c_str(), i);
-		std::map<int, GlyphData>::iterator it = glyphData.find(chr);
-		if(it == glyphData.end()) {
-			renderAtlas(chr);
-			it = glyphData.find(chr);
-		}
-
-		if(it != glyphData.end()) {
-			width += it->second.horizontalAdvance;
-		}
-		i += codepointLen;
-	}
-
+int gxFont::getWidth(const std::string& text) const {
+	auto [width, height] = stringWidthHeight(text);
 	return width;
 }
 
-int gxFont::getWidth()const {
-	return maxWidth;
-}
-
-int gxFont::getHeight()const {
-	return glyphHeight;
-}
-
-int gxFont::getRenderOffset()const {
-	return glyphRenderOffset;
-}
-
-int gxFont::getWidth(const std::string& text) {
-	return stringWidth(text);
-}
-
 bool gxFont::isPrintable(int chr)const {
-	return glyphData.find(chr) != glyphData.end();
-}
-
-float gxFont::getBaselinePosition() const
-{
-	return static_cast<float>(freeTypeFace->size->metrics.ascender) / 64.0F;
-}
-
-float gxFont::getUnderlinePosition()const
-{
-	return -static_cast<float>(FT_MulFix(freeTypeFace->underline_position, freeTypeFace->size->metrics.y_scale)) / 64.0F;
-}
-
-float gxFont::getUnderlineThickness()const
-{
-	return std::max(1.0F, static_cast<float>(FT_MulFix(freeTypeFace->underline_thickness, freeTypeFace->size->metrics.y_scale)) / 64.0F);
+	return true;
 }
