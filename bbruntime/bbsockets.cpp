@@ -1,10 +1,14 @@
+#define WIN32_LEAN_AND_MEAN
 #include "std.h"
 #include "bbsockets.h"
-#include <wininet.h>
 #include <WinDNS.h>
+#include <WinSock2.h>
+#include <ws2tcpip.h>
+#include <in6addr.h>
 #include "../MultiLang/MultiLang.h"
 #include "../gxruntime/gxutf8.h"
 
+#pragma comment(lib, "ws2_32.lib")
 #pragma comment (lib, "Urlmon.lib")
 #pragma comment (lib, "Dnsapi.lib")
 static bool socks_ok;
@@ -40,7 +44,7 @@ public:
 	int eof();
 
 	int recv();
-	int send(int ip, int port);
+	int send(const char* ip_str, int port);
 	int getIP();
 	int getPort();
 	int getMsgIP();
@@ -49,14 +53,20 @@ public:
 private:
 	SOCKET sock;
 	std::vector<char> in_buf, out_buf;
-	sockaddr_in addr, in_addr, out_addr;
+	sockaddr_storage addr, in_addr, out_addr;
+	socklen_t addr_len, in_addr_len, out_addr_len;
 	int in_get, e;
 };
 
-UDPStream::UDPStream(SOCKET s) :sock(s), in_get(0), e(0) {
-	int len = sizeof(addr);
-	getsockname(s, (sockaddr*)&addr, &len);
-	in_addr = out_addr = addr;
+UDPStream::UDPStream(SOCKET s) :sock(s), in_get(0), e(0), addr_len(0), in_addr_len(0), out_addr_len(0) {
+	addr_len = sizeof(addr);
+	if (getsockname(s, (sockaddr*)&addr, &addr_len) == SOCKET_ERROR) {
+		e = -1;
+	}
+	in_addr = addr;
+	in_addr_len = addr_len;
+	out_addr = addr;
+	out_addr_len = addr_len;
 }
 
 UDPStream::~UDPStream() {
@@ -106,8 +116,8 @@ int UDPStream::recv() {
 		unsigned long sz = -1;
 		if (ioctlsocket(sock, FIONREAD, &sz)) { e = -1; return 0; }
 		in_buf.resize(sz); in_get = 0;
-		int len = sizeof(in_addr);
-		n = ::recvfrom(sock, (char*)in_buf.data(), sz, 0, (sockaddr*)&in_addr, &len);
+		in_addr_len = sizeof(in_addr);
+		n = ::recvfrom(sock, (char*)in_buf.data(), sz, 0, (sockaddr*)&in_addr, &in_addr_len);
 		if (n == SOCKET_ERROR) continue;	//{ e=-1;return 0; }
 		in_buf.resize(n);
 		return getMsgIP();
@@ -116,31 +126,86 @@ int UDPStream::recv() {
 }
 
 //send, empty buffer
-int UDPStream::send(int ip, int port) {
+int UDPStream::send(const char* ip_str, int port) {
 	if (e) return 0;
-	int sz = out_buf.size();
-	out_addr.sin_addr.S_un.S_addr = htonl(ip);
-	out_addr.sin_port = htons(port ? port : addr.sin_port);
-	int n = ::sendto(sock, (char*)out_buf.data(), sz, 0, (sockaddr*)&out_addr, sizeof(out_addr));
-	if (n != sz) return e = -1;
+
+	addrinfo hints = {}, * result = nullptr;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+
+	std::string service = std::to_string(port);
+	if (getaddrinfo(ip_str, service.c_str(), &hints, &result) != 0) {
+		return e = -1;
+	}
+
+	int sent = -1;
+
+	for (addrinfo* ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+		sent = ::sendto(
+			sock, out_buf.data(), (int)out_buf.size(), 0,
+			ptr->ai_addr, (int)ptr->ai_addrlen
+		);
+		if (sent != SOCKET_ERROR) break;
+	}
+
+	freeaddrinfo(result);
+	if (sent == SOCKET_ERROR) return e = -1;
 	out_buf.clear();
-	return sz;
+	return sent;
 }
 
 int UDPStream::getIP() {
-	return ntohl(addr.sin_addr.S_un.S_addr);
+	if (addr.ss_family == AF_INET) {
+		sockaddr_in* addr4 = (sockaddr_in*)&addr;
+		return ntohl(addr4->sin_addr.S_un.S_addr);
+	}
+	else if (addr.ss_family == AF_INET6) {
+		sockaddr_in6* addr6 = (sockaddr_in6*)&addr;
+		if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+			uint32_t ip4 = *(uint32_t*)&addr6->sin6_addr.s6_addr[12];
+			return ntohl(ip4);
+		}
+	}
+	return 0;
 }
 
 int UDPStream::getPort() {
-	return ntohs(addr.sin_port);
+	if (addr.ss_family == AF_INET) {
+		sockaddr_in* addr4 = (sockaddr_in*)&addr;
+		return ntohs(addr4->sin_port);
+	}
+	else if (addr.ss_family == AF_INET6) {
+		sockaddr_in6* addr6 = (sockaddr_in6*)&addr;
+		return ntohs(addr6->sin6_port);
+	}
+	return 0;
 }
 
 int UDPStream::getMsgIP() {
-	return ntohl(in_addr.sin_addr.S_un.S_addr);
+	if (in_addr.ss_family == AF_INET) {
+		sockaddr_in* addr4 = (sockaddr_in*)&in_addr;
+		return ntohl(addr4->sin_addr.S_un.S_addr);
+	}
+	else if (in_addr.ss_family == AF_INET6) {
+		sockaddr_in6* addr6 = (sockaddr_in6*)&in_addr;
+		if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+			uint32_t ip4 = *(uint32_t*)&addr6->sin6_addr.s6_addr[12];
+			return ntohl(ip4);
+		}
+	}
+	return 0;
 }
 
 int UDPStream::getMsgPort() {
-	return ntohs(in_addr.sin_port);
+	if (in_addr.ss_family == AF_INET) {
+		sockaddr_in* addr4 = (sockaddr_in*)&in_addr;
+		return ntohs(addr4->sin_port);
+	}
+	else if (in_addr.ss_family == AF_INET6) {
+		sockaddr_in6* addr6 = (sockaddr_in6*)&in_addr;
+		return ntohs(addr6->sin6_port);
+	}
+	return 0;
 }
 
 class TCPStream : public bbStream {
@@ -177,15 +242,23 @@ private:
 	std::set<TCPStream*> accepted_set;
 };
 
-TCPStream::TCPStream(SOCKET s, TCPServer* t) :sock(s), server(t), e(0) {
-	sockaddr_in addr;
-	int len = sizeof(addr);
-	if (getpeername(s, (sockaddr*)&addr, &len)) {
-		ip = port = 0;
-		return;
+TCPStream::TCPStream(SOCKET s, TCPServer* t) :sock(s), server(t), e(0), ip(0), port(0) {
+	sockaddr_storage addr_storage = { 0 };
+	int len = sizeof(addr_storage);
+	if (getpeername(s, (sockaddr*)&addr_storage, &len) == 0) {
+		if (addr_storage.ss_family == AF_INET) {
+			sockaddr_in* addr4 = (sockaddr_in*)&addr_storage;
+			ip = ntohl(addr4->sin_addr.S_un.S_addr);
+			port = ntohs(addr4->sin_port);
+		}
+		else if (addr_storage.ss_family == AF_INET6) {
+			sockaddr_in6* addr6 = (sockaddr_in6*)&addr_storage;
+			if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+				ip = ntohl(*(uint32_t*)&addr6->sin6_addr.s6_addr[12]);
+			}
+			port = ntohs(addr6->sin6_port);
+		}
 	}
-	ip = ntohl(addr.sin_addr.S_un.S_addr);
-	port = ntohs(addr.sin_port);
 }
 
 TCPStream::~TCPStream() {
@@ -260,12 +333,9 @@ TCPServer::~TCPServer() {
 
 TCPStream* TCPServer::accept() {
 	if (e) return 0;
-	fd_set fd = { 1,sock };
-	timeval tv = { accept_timeout / 1000,(accept_timeout % 1000) * 1000 };
-	int n = ::select(0, &fd, 0, 0, &tv);
-	if (n == 0) return 0;
-	if (n != 1) { e = -1; return 0; }
-	SOCKET t = ::accept(sock, 0, 0);
+	sockaddr_storage addr;
+	int addr_len = sizeof(addr);
+	SOCKET t = ::accept(sock, (sockaddr*)&addr, &addr_len);
 	if (t == INVALID_SOCKET) { e = -1; return 0; }
 	TCPStream* s = new TCPStream(t, this);
 	accepted_set.insert(s);
@@ -298,10 +368,31 @@ static std::vector<int> host_ips;
 
 int bbCountHostIPs(BBStr* host) {
 	host_ips.clear();
-	HOSTENT* h = gethostbyname(host->c_str());
-	delete host; if (!h) return 0;
-	char** p = h->h_addr_list;
-	while (char* t = *p++) host_ips.push_back(ntohl(*(int*)t));
+	addrinfo hints = { 0 }, * result = nullptr;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if (getaddrinfo(host->c_str(), nullptr, &hints, &result) != 0) {
+		delete host;
+		return 0;
+	}
+
+	for (addrinfo* ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+		if (ptr->ai_family == AF_INET) {
+			sockaddr_in* addr = (sockaddr_in*)ptr->ai_addr;
+			host_ips.push_back(ntohl(addr->sin_addr.s_addr));
+		}
+		else if (ptr->ai_family == AF_INET6) {
+			sockaddr_in6* addr6 = (sockaddr_in6*)ptr->ai_addr;
+			if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+				uint32_t ip4 = *(uint32_t*)&addr6->sin6_addr.s6_addr[12];
+				host_ips.push_back(ntohl(ip4));
+			}
+		}
+	}
+
+	freeaddrinfo(result);
+	delete host;
 	return host_ips.size();
 }
 
@@ -312,19 +403,61 @@ int bbHostIP(int index) {
 	return host_ips[index - 1];
 }
 
-UDPStream* bbCreateUDPStream(int port) {
+UDPStream* bbCreateUDPStream(int port, int family) {
 	if (!socks_ok) return 0;
-	SOCKET s = ::socket(AF_INET, SOCK_DGRAM, 0);
-	if (s != INVALID_SOCKET) {
-		sockaddr_in addr = { AF_INET,htons(port) };
-		if (!::bind(s, (sockaddr*)&addr, sizeof(addr))) {
-			UDPStream* p = new UDPStream(s);
-			udp_set.insert(p);
-			return p;
-		}
-		::closesocket(s);
+
+	int af;
+	int v6only = 0;
+
+	if (family == 0) {
+		af = AF_INET;
 	}
-	return 0;
+	else if (family == 1) {
+		af = AF_INET6;
+		v6only = 1;
+	}
+	else if (family == 2) {
+		af = AF_INET6;
+		v6only = 0;
+	}
+	else {
+		return 0;
+	}
+
+	SOCKET s = socket(af, SOCK_DGRAM, IPPROTO_UDP);
+	if (s == INVALID_SOCKET) return 0;
+
+	if (af == AF_INET6) {
+		if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, (const char*)&v6only, sizeof(v6only)) == SOCKET_ERROR) {
+			closesocket(s);
+			return 0;
+		}
+	}
+
+	if (af == AF_INET) {
+		sockaddr_in addr = { 0 };
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(port);
+		addr.sin_addr.s_addr = INADDR_ANY;
+		if (bind(s, (sockaddr*)&addr, sizeof(addr)) != 0) {
+			closesocket(s);
+			return 0;
+		}
+	}
+	else {
+		sockaddr_in6 addr6 = { 0 };
+		addr6.sin6_family = AF_INET6;
+		addr6.sin6_port = htons(port);
+		addr6.sin6_addr = in6addr_any;
+		if (bind(s, (sockaddr*)&addr6, sizeof(addr6)) != 0) {
+			closesocket(s);
+			return 0;
+		}
+	}
+
+	UDPStream* p = new UDPStream(s);
+	udp_set.insert(p);
+	return p;
 }
 
 void bbCloseUDPStream(UDPStream* p) {
@@ -338,9 +471,9 @@ int bbRecvUDPMsg(UDPStream* p) {
 	return p->recv();
 }
 
-void bbSendUDPMsg(UDPStream* p, int ip, int port) {
+void bbSendUDPMsg(UDPStream* p, BBStr* ip, int port) {
 	debugUDPStream(p, "SendUDPMsg");
-	p->send(ip, port);
+	p->send(ip->c_str(), port);
 }
 
 int bbUDPStreamIP(UDPStream* p) {
@@ -374,15 +507,29 @@ BBStr* bbDottedIP(int ip) {
 }
 
 static int findHostIP(const std::string& t) {
-	int ip = inet_addr(t.c_str());
-	if (ip != INADDR_NONE) return ip;
-	HOSTENT* h = gethostbyname(t.c_str());
-	if (!h) return -1;
-	char* p;
-	for (char** list = h->h_addr_list; p = *list; ++list) {
-		return *(int*)p;
+	addrinfo hints = { 0 }, * result = nullptr;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if (getaddrinfo(t.c_str(), nullptr, &hints, &result) != 0) return -1;
+
+	int ip = 0;
+	for (addrinfo* ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+		if (ptr->ai_family == AF_INET) {
+			sockaddr_in* addr = (sockaddr_in*)ptr->ai_addr;
+			ip = ntohl(addr->sin_addr.s_addr);
+			break;
+		}
+		else if (ptr->ai_family == AF_INET6) {
+			sockaddr_in6* addr6 = (sockaddr_in6*)ptr->ai_addr;
+			if (IN6_IS_ADDR_V4MAPPED(&addr6->sin6_addr)) {
+				ip = ntohl(*(uint32_t*)&addr6->sin6_addr.s6_addr[12]);
+				break;
+			}
+		}
 	}
-	return 0;
+	freeaddrinfo(result);
+	return ip;
 }
 
 TCPStream* bbOpenTCPStream(BBStr* server, int port, int local_port) {
@@ -390,25 +537,54 @@ TCPStream* bbOpenTCPStream(BBStr* server, int port, int local_port) {
 		delete server;
 		return 0;
 	}
-	int ip = findHostIP(*server); delete server;
-	if (ip == -1) return 0;
-	SOCKET s = ::socket(AF_INET, SOCK_STREAM, 0);
-	if (s != INVALID_SOCKET) {
-		if (local_port) {
-			sockaddr_in addr = { AF_INET,htons(local_port) };
-			if (::bind(s, (sockaddr*)&addr, sizeof(addr))) {
-				::closesocket(s);
-				return 0;
+
+	addrinfo hints = { 0 }, * result = nullptr;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	std::string service = std::to_string(port);
+	if (getaddrinfo(server->c_str(), service.c_str(), &hints, &result) != 0) {
+		delete server;
+		return 0;
+	}
+
+	SOCKET s = INVALID_SOCKET;
+	for (addrinfo* ptr = result; ptr != nullptr; ptr = ptr->ai_next) {
+		s = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+		if (s == INVALID_SOCKET) continue;
+
+		if (local_port != 0) {
+			sockaddr_storage local_addr = { 0 };
+			if (ptr->ai_family == AF_INET) {
+				sockaddr_in* local4 = (sockaddr_in*)&local_addr;
+				local4->sin_family = AF_INET;
+				local4->sin_port = htons(local_port);
+				local4->sin_addr.s_addr = INADDR_ANY;
+			}
+			else {
+				sockaddr_in6* local6 = (sockaddr_in6*)&local_addr;
+				local6->sin6_family = AF_INET6;
+				local6->sin6_port = htons(local_port);
+				local6->sin6_addr = in6addr_any;
+			}
+			if (bind(s, (sockaddr*)&local_addr, ptr->ai_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6)) != 0) {
+				closesocket(s);
+				s = INVALID_SOCKET;
+				continue;
 			}
 		}
-		sockaddr_in addr = { AF_INET,htons(port) };
-		addr.sin_addr.S_un.S_addr = ip;
-		if (!::connect(s, (sockaddr*)&addr, sizeof(addr))) {
-			TCPStream* p = new TCPStream(s, 0);
-			tcp_set.insert(p);
-			return p;
-		}
-		::closesocket(s);
+
+		if (connect(s, ptr->ai_addr, (int)ptr->ai_addrlen) == 0) break;
+		closesocket(s);
+		s = INVALID_SOCKET;
+	}
+	freeaddrinfo(result);
+	delete server;
+
+	if (s != INVALID_SOCKET) {
+		TCPStream* p = new TCPStream(s, 0);
+		tcp_set.insert(p);
+		return p;
 	}
 	return 0;
 }
@@ -419,20 +595,63 @@ void bbCloseTCPStream(TCPStream* p) {
 	delete p;
 }
 
-TCPServer* bbCreateTCPServer(int port) {
-	SOCKET s = ::socket(AF_INET, SOCK_STREAM, 0);
-	if (s != INVALID_SOCKET) {
-		sockaddr_in addr = { AF_INET,htons(port) };
-		if (!::bind(s, (sockaddr*)&addr, sizeof(addr))) {
-			if (!::listen(s, SOMAXCONN)) {
-				TCPServer* p = new TCPServer(s);
-				server_set.insert(p);
-				return p;
-			}
-		}
-		::closesocket(s);
+TCPServer* bbCreateTCPServer(int port, int family) {
+	if (!socks_ok) return 0;
+
+	int af;
+	int v6only = 0;
+
+	if (family == 0) {
+		af = AF_INET;
 	}
-	return 0;
+	else if (family == 1) {
+		af = AF_INET6;
+		v6only = 1;
+	}
+	else if (family == 2) {
+		af = AF_INET6;
+		v6only = 0;
+	}
+	else {
+		return 0;
+	}
+
+	SOCKET s = socket(af, SOCK_STREAM, IPPROTO_TCP);
+	if (s == INVALID_SOCKET) return 0;
+
+	if (af == AF_INET6) {
+		if (setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, (char*)&v6only, sizeof(v6only))) {
+			closesocket(s);
+			return 0;
+		}
+	}
+
+	sockaddr_storage addr = { 0 };
+	socklen_t addr_len;
+
+	if (af == AF_INET) {
+		sockaddr_in* addr4 = (sockaddr_in*)&addr;
+		addr4->sin_family = AF_INET;
+		addr4->sin_port = htons(port);
+		addr4->sin_addr.s_addr = INADDR_ANY;
+		addr_len = sizeof(sockaddr_in);
+	}
+	else {
+		sockaddr_in6* addr6 = (sockaddr_in6*)&addr;
+		addr6->sin6_family = AF_INET6;
+		addr6->sin6_port = htons(port);
+		addr6->sin6_addr = in6addr_any;
+		addr_len = sizeof(sockaddr_in6);
+	}
+
+	if (bind(s, (sockaddr*)&addr, addr_len) != 0 || listen(s, SOMAXCONN) != 0) {
+		closesocket(s);
+		return 0;
+	}
+
+	TCPServer* p = new TCPServer(s);
+	server_set.insert(p);
+	return p;
 }
 
 void  bbCloseTCPServer(TCPServer* p) {
@@ -489,7 +708,7 @@ BBStr* bbGetDomainTXT(BBStr* domain) {
 }
 
 bool sockets_create() {
-	socks_ok = WSAStartup(0x0101, &wsadata) == 0;
+	socks_ok = WSAStartup(MAKEWORD(2, 2), &wsadata) == 0;
 	recv_timeout = 0;
 	read_timeout = 10000;
 	accept_timeout = 0;
@@ -515,9 +734,9 @@ void sockets_link(void(*rtSym)(const char*, void*)) {
 	rtSym("%CountHostIPs$host_name", bbCountHostIPs);
 	rtSym("%HostIP%host_index", bbHostIP);
 
-	rtSym("%CreateUDPStream%port=0", bbCreateUDPStream);
+	rtSym("%CreateUDPStream%port=0%family=0", bbCreateUDPStream);
 	rtSym("CloseUDPStream%udp_stream", bbCloseUDPStream);
-	rtSym("SendUDPMsg%udp_stream%dest_ip%dest_port=0", bbSendUDPMsg);
+	rtSym("SendUDPMsg%udp_stream$dest_ip%dest_port=0", bbSendUDPMsg);
 	rtSym("%RecvUDPMsg%udp_stream", bbRecvUDPMsg);
 	rtSym("%UDPStreamIP%udp_stream", bbUDPStreamIP);
 	rtSym("%UDPStreamPort%udp_stream", bbUDPStreamPort);
@@ -527,7 +746,7 @@ void sockets_link(void(*rtSym)(const char*, void*)) {
 
 	rtSym("%OpenTCPStream$server%server_port%local_port=0", bbOpenTCPStream);
 	rtSym("CloseTCPStream%tcp_stream", bbCloseTCPStream);
-	rtSym("%CreateTCPServer%port", bbCreateTCPServer);
+	rtSym("%CreateTCPServer%port%family=0", bbCreateTCPServer);
 	rtSym("CloseTCPServer%tcp_server", bbCloseTCPServer);
 	rtSym("%AcceptTCPStream%tcp_server", bbAcceptTCPStream);
 	rtSym("%TCPStreamIP%tcp_stream", bbTCPStreamIP);
