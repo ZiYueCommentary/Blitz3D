@@ -693,8 +693,8 @@ void bbText(int x, int y, BBStr* str, int xPos, int yPos)
 {
     if (xPos == 2) x -= curr_font->getWidth(*str);
     if (xPos == 1) x -= curr_font->getWidth(*str) / 2;
-    if (yPos == 2) y -= curr_font->getHeight();
-    if (yPos == 1) y -= curr_font->getHeight() / 2;
+    if (yPos == 2) y -= curr_font->getHeight(*str);
+    if (yPos == 1) y -= curr_font->getHeight(*str) / 2;
     gx_canvas->text(x, y, *str);
     delete str;
 }
@@ -747,12 +747,12 @@ void bbFreeFont(gxFont* f)
 
 int bbFontWidth()
 {
-    return curr_font->getWidth();
+    return curr_font->getWidth("T");
 }
 
 int bbFontHeight()
 {
-    return curr_font->getHeight();
+    return curr_font->getHeight("T");
 }
 
 gxFont* bbGetFont() {
@@ -767,8 +767,8 @@ int bbStringWidth(BBStr* str)
 
 int bbStringHeight(BBStr* str)
 {
-    delete str;
-    return curr_font->getHeight() + curr_font->getRenderOffset();
+    std::string t = *str; delete str;
+    return curr_font->getHeight(t);
 }
 
 BBStr* bbFontPath(BBStr* facename) {
@@ -1192,10 +1192,10 @@ static gxCanvas* startPrinting()
         c->setColor(curr_color);
     }
 
-    int dy = curs_y + curr_font->getHeight() - c->getHeight();
+    int dy = curs_y + curr_font->getHeight("T") - c->getHeight();
     if (dy > 0)
     {
-        curs_y = c->getHeight() - curr_font->getHeight();
+        curs_y = c->getHeight() - curr_font->getHeight("T");
         c->blit(0, 0, c, 0, dy, c->getWidth(), c->getHeight() - dy, true);
         c->setColor(curr_clsColor);
         c->rect(0, c->getHeight() - dy, c->getWidth(), dy, true);
@@ -1227,21 +1227,21 @@ void bbPrint(BBStr* str)
     gxCanvas* c = startPrinting();
     c->text(curs_x, curs_y, *str);
     curs_x = 0;
-    curs_y += curr_font->getHeight() + 3; //avoid multiline overlapping by adding 3 to the font height
+    curs_y += curr_font->getHeight(*str) + 3; //avoid multiline overlapping by adding 3 to the font height
     endPrinting(c);
     delete str;
 }
 
-BBStr* bbInput(BBStr* prompt)
+BBStr* bbInput(BBStr* prompt) // deprecated
 {
     gxCanvas* c = startPrinting();
     std::string t = *prompt; delete prompt;
 
     //get temp canvas
-    if (!p_canvas || p_canvas->getWidth() < c->getWidth() || p_canvas->getHeight() < curr_font->getHeight() * 2)
+    if (!p_canvas || p_canvas->getWidth() < c->getWidth() || p_canvas->getHeight() < curr_font->getHeight("T") * 2)
     {
         if (p_canvas) gx_graphics->freeCanvas(p_canvas);
-        p_canvas = gx_graphics->createCanvas(c->getWidth(), curr_font->getHeight() * 2, 0);
+        p_canvas = gx_graphics->createCanvas(c->getWidth(), curr_font->getHeight("T") * 2, 0);
         if (!p_canvas)
         {
             endPrinting(c);
@@ -1254,7 +1254,7 @@ BBStr* bbInput(BBStr* prompt)
 
     p_canvas->setFont(curr_font);
     p_canvas->setColor(curr_color);
-    p_canvas->blit(0, 0, c, 0, curs_y, c->getWidth(), curr_font->getHeight(), true);
+    p_canvas->blit(0, 0, c, 0, curs_y, c->getWidth(), curr_font->getHeight("T"), true);
 
     std::string str;
     bool go = true;
@@ -1280,12 +1280,12 @@ BBStr* bbInput(BBStr* prompt)
                 if (!(tc & 1))
                 {	//cursor ON
                     c->setColor(curr_clsColor ^ 0xffffff);
-                    c->rect(cx, curs_y, cw, curr_font->getHeight(), true);
+                    c->rect(cx, curs_y, cw, curr_font->getHeight("T"), true);
                     c->setColor(curr_clsColor);
                 }
                 else
                 {			//cursor OFF
-                    c->blit(cx, curs_y, p_canvas, cx, 0, cw, curr_font->getHeight(), true);
+                    c->blit(cx, curs_y, p_canvas, cx, 0, cw, curr_font->getHeight("T"), true);
                     c->setColor(curr_color);
                 }
                 c->text(cx, curs_y, str.substr(curs, 1));
@@ -1361,13 +1361,13 @@ BBStr* bbInput(BBStr* prompt)
         }
 
         //render text
-        p_canvas->blit(0, curr_font->getHeight(), p_canvas, 0, 0, c->getWidth(), curr_font->getHeight(), true);
-        p_canvas->text(curs_x, curr_font->getHeight(), str);
-        c->blit(0, curs_y, p_canvas, 0, curr_font->getHeight(), c->getWidth(), curr_font->getHeight(), true);
+        p_canvas->blit(0, curr_font->getHeight("T"), p_canvas, 0, 0, c->getWidth(), curr_font->getHeight("T"), true);
+        p_canvas->text(curs_x, curr_font->getHeight("T"), str);
+        c->blit(0, curs_y, p_canvas, 0, curr_font->getHeight("T"), c->getWidth(), curr_font->getHeight("T"), true);
     }
 
     curs_x = 0;
-    curs_y += curr_font->getHeight() + 3;
+    curs_y += curr_font->getHeight("T") + 3;
     endPrinting(c);
     return new BBStr(str);
 }

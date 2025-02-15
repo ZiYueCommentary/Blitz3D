@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="15.0">
+  <ItemGroup>
+    <Pango-cppLibs Include="$(MSBuildThisFileDirectory)\lib\$(Platform)\*.lib" />
+    <Pango-cppIncl Include="$(MSBuildThisFileDirectory)\include;$(MSBuildThisFileDirectory)\include\pango-1.0;$(MSBuildThisFileDirectory)\include\glib-2.0;$(MSBuildThisFileDirectory)\include\harfbuzz;$(MSBuildThisFileDirectory)\include\cairo;" />
+  </ItemGroup>
+  <PropertyGroup>
+    <!-- Expland the items to a property -->
+    <Pango-cppLibraries>@(Pango-cppLibs)</Pango-cppLibraries>
+    <Pango-cppIncludes>@(Pango-cppIncl)</Pango-cppIncludes>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(Pango-cppIncludes);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(Pango-cppLibraries);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>

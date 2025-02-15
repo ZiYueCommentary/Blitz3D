@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="15.0">
+  <ItemGroup>
+    <Pango-cppBins Include="$(MSBuildThisFileDirectory)bin\$(Platform)\*.dll" />
+  </ItemGroup>
+  <Target Name="Pango_cpp_redist_AfterBuild" AfterTargets="AfterBuild">
+    <Copy SourceFiles="@(Pango-cppBins)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>
