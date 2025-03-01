@@ -6,7 +6,8 @@
 
 extern gxRuntime* gx_runtime;
 
-#include "..\freeimage\freeimage.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 static AsmCoder asm_coder;
 
@@ -445,73 +446,51 @@ IDirectDrawSurface7* loadDXTC(const char* filename, gxGraphics* gfx) {
 
 ddSurf* ddUtil::loadSurface(const std::string& f, int flags, gxGraphics* gfx) {
 
-	int i = f.find(".dds");
-	if(i != std::string::npos && i + 4 == f.size()) {
-		//dds file!
-		ddSurf* surf = loadDXTC(f.c_str(), gfx);
-		return surf;
+	int ddsPos = f.find(".dds");
+	if (ddsPos != std::string::npos && ddsPos + 4 == f.size()) {
+		return loadDXTC(f.c_str(), gfx);
 	}
 
-	FreeImage_Initialise(true);
-	FREE_IMAGE_FORMAT fmt = FreeImage_GetFileType(f.c_str(), f.size());
-	if(fmt == FIF_UNKNOWN) {
-		int n = f.find("."); if(n == std::string::npos) return 0;
-		fmt = FreeImage_GetFileTypeFromExt(f.substr(n + 1).c_str());
-		if(fmt == FIF_UNKNOWN) return 0;
-	}
-	FIBITMAP* t_dib = FreeImage_Load(fmt, f.c_str(), 0);
-	if(!t_dib) return 0;
+	int width, height, channels;
+	unsigned char* data = stbi_load(f.c_str(), &width, &height, &channels, 4);
+	if (!data) return nullptr;
 
-	bool trans = FreeImage_GetBPP(t_dib) == 32 || FreeImage_IsTransparent(t_dib);
+	int pitch = (width * 4 + 3) & ~3;
 
-	FIBITMAP* dib = FreeImage_ConvertTo32Bits(t_dib);
-
-	if(dib) FreeImage_Unload(t_dib);
-	else dib = t_dib;
-
-	int width = FreeImage_GetWidth(dib);
-	int height = FreeImage_GetHeight(dib);
-	int pitch = FreeImage_GetPitch(dib);
-	void* bits = FreeImage_GetBits(dib);
-
-	ddSurf* src = ::createSurface(width, height, pitch, bits, gfx->dirDraw);
-	if(!src) {
-		FreeImage_Unload(dib);
-		return 0;
+	for (int i = 0; i < width * height * 4; i += 4) {
+		std::swap(data[i], data[i + 2]);
 	}
 
-	if(flags & gxCanvas::CANVAS_TEX_ALPHA) {
-		if(flags & gxCanvas::CANVAS_TEX_MASK) {
-			buildMask(src);
-		}
-		else if(!trans) {
-			buildAlpha(src, (flags & gxCanvas::CANVAS_TEX_RGB) ? false : true);
+	if (!(flags & gxCanvas::CANVAS_TEX_ALPHA)) {
+		for (int i = 3; i < width * height * 4; i += 4) {
+			data[i] = 0xFF;
 		}
 	}
-	else {
-		unsigned char* p = (unsigned char*)bits;
-		for(int k = 0; k < height; ++k) {
-			unsigned char* t = p + 3;
-			for(int j = 0; j < width; ++j) {
-				*t = 0xff; t += 4;
-			}
-			p += pitch;
-		}
+
+	stbi_set_flip_vertically_on_load(true);
+
+	ddSurf* src = ::createSurface(width, height, pitch, data, gfx->dirDraw);
+	if (!src) {
+		stbi_image_free(data);
+		return nullptr;
 	}
 
 	ddSurf* dest = createSurface(width, height, flags, gfx);
-	if(!dest) {
+	if (!dest) {
 		src->Release();
-		FreeImage_Unload(dib);
-		return 0;
+		stbi_image_free(data);
+		return nullptr;
 	}
 
-	int t_w = width, t_h = height;
-	if(flags & gxCanvas::CANVAS_TEXTURE) adjustTexSize(&t_w, &t_h, gfx->dir3dDev);
-	copy(dest, 0, 0, t_w, t_h, src, 0, height - 1, width, -height);
+	int tWidth = width, tHeight = height;
+	if (flags & gxCanvas::CANVAS_TEXTURE) {
+		adjustTexSize(&tWidth, &tHeight, gfx->dir3dDev);
+	}
+
+	copy(dest, 0, 0, tWidth, tHeight, src, 0, height - 1, width, -height);
 
 	src->Release();
-	FreeImage_Unload(dib);
-	FreeImage_DeInitialise();
+	stbi_image_free(data);
 	return dest;
+
 }

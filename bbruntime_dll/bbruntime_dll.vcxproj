@@ -189,18 +189,6 @@
     <ProjectReference Include="..\blitz3d\blitz3d.vcxproj">
       <Project>{60bb991f-8721-4a17-9f70-79d0ee5507fa}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\freeimage\FreeImageLib\FreeImageLib.vcxproj">
-      <Project>{0c7bd7a8-5a0a-4ced-a18b-db7187c2cf0d}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\freeimage\LibJPEG\LibJPEG.vcxproj">
-      <Project>{4d936323-b459-429e-b192-39b9290e3883}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\freeimage\LibPNG\LibPNG.vcxproj">
-      <Project>{80d29696-da27-4767-b736-af0b0dce4500}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\freeimage\ZLib\ZLib.vcxproj">
-      <Project>{7feb7d92-c789-4a2c-b1f3-06c54ce276ee}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\freetype\builds\windows\vc2010\freetype.vcxproj">
       <Project>{78b079bd-9fc7-4b9e-b4a6-96da0f00248b}</Project>
     </ProjectReference>
