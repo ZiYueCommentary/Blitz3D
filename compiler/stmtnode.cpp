@@ -291,6 +291,7 @@ void WhileNode::translate(Codegen* g) {
 	std::string loop = genLabel();
 	if(ConstNode* c = expr->constNode()) {
 		if(!c->intValue()) return;
+		g->label(sem_cont);
 		g->label(loop);
 		stmts->translate(g);
 		g->code(jump(loop));
