@@ -212,7 +212,7 @@ static std::map<std::string, int> runtime_syms;
 static Runtime* runtime;
 
 static void fail() {
-	MessageBox(0, MultiLang::unable_run_module, 0, 0);
+	MessageBoxA(0, MultiLang::unable_run_module, 0, 0);
 	ExitProcess(-1);
 }
 
@@ -238,7 +238,7 @@ static int findSym(const std::string& t) {
 	if(it != runtime_syms.end()) return it->second;
 
 	std::string err = std::format(MultiLang::cant_find_symbol, t);
-	MessageBox(0, err.c_str(), 0, 0);
+	MessageBoxA(0, err.c_str(), 0, 0);
 	ExitProcess(0);
 	return 0;
 }
@@ -332,7 +332,7 @@ int __stdcall bbWinMain() {
 	link();
 
 	//get cmd_line and params
-	std::string cmd = GetCommandLine(), params;
+	std::string cmd = GetCommandLineA(), params;
 	while(cmd.size() && cmd[0] == ' ') cmd = cmd.substr(1);
 	if(cmd.find('\"') == 0) {
 		int n = cmd.find('\"', 1);
