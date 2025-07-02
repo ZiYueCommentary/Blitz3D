@@ -973,6 +973,20 @@ void bbDrawBlock(bbImage* i, int x, int y, int frame)
     gx_canvas->blit(x, y, c, 0, 0, c->getWidth(), c->getHeight(), true);
 }
 
+void bbDrawImageStretch(bbImage* i, int x, int y, int w, int h, int frame)
+{
+    debugImage(i, "DrawImageStretch", frame);
+    gxCanvas* c = i->getFrames()[frame];
+    gx_canvas->blitstretch(x, y, w, h, c, 0, 0, c->getWidth(), c->getHeight(), false);
+}
+
+void bbDrawBlockStretch(bbImage* i, int x, int y, int w, int h, int frame)
+{
+    debugImage(i, "DrawBlockStretch", frame);
+    gxCanvas* c = i->getFrames()[frame];
+    gx_canvas->blitstretch(x, y, w, h, c, 0, 0, c->getWidth(), c->getHeight(), true);
+}
+
 static void tile(bbImage* i, int x, int y, int frame, bool solid)
 {
     gxCanvas* c = i->getFrames()[frame];
@@ -1538,6 +1552,8 @@ void graphics_link(void (*rtSym)(const char* sym, void* pc))
     rtSym("%ImageBuffer%image%frame=0", bbImageBuffer);
     rtSym("DrawImage%image%x%y%frame=0", bbDrawImage);
     rtSym("DrawBlock%image%x%y%frame=0", bbDrawBlock);
+    rtSym("DrawImageStretch%image%x%y%w%h%frame=0", bbDrawImageStretch);
+    rtSym("DrawBlockStretch%image%x%y%w%h%frame=0", bbDrawBlockStretch);
     rtSym("TileImage%image%x=0%y=0%frame=0", bbTileImage);
     rtSym("TileBlock%image%x=0%y=0%frame=0", bbTileBlock);
     rtSym("DrawImageRect%image%x%y%rect_x%rect_y%rect_width%rect_height%frame=0", bbDrawImageRect);

@@ -448,9 +448,13 @@ void gxCanvas::oval(int x1, int y1, int w, int h, bool solid) {
 }
 
 void gxCanvas::blit(int x, int y, gxCanvas* src, int src_x, int src_y, int src_w, int src_h, bool solid) {
+	blitstretch(x, y, src_w, src_h, src, src_x, src_y, src_w, src_h, solid);
+}
+
+void gxCanvas::blitstretch(int x, int y, int w, int h, gxCanvas* src, int src_x, int src_y, int src_w, int src_h, bool solid) {
 	x += origin_x - src->handle_x;
 	y += origin_y - src->handle_y;
-	Rect dest_r(x, y, src_w, src_h), src_r(src_x, src_y, src_w, src_h);
+	Rect dest_r(x, y, w, h), src_r(src_x, src_y, src_w, src_h);
 	if(!clip(&dest_r, &src_r)) return;
 	if(!::clip(src->clip_rect, &src_r, &dest_r)) return;
 
@@ -462,17 +466,6 @@ void gxCanvas::blit(int x, int y, gxCanvas* src, int src_x, int src_y, int src_w
 			bltfx.ddckSrcColorkey.dwColorSpaceHighValue = src->mask_surf;
 		surf->Blt(&dest_r, src->surf, &src_r, DDBLT_WAIT | DDBLT_KEYSRCOVERRIDE, &bltfx);
 	}
-	damage(dest_r);
-}
-
-void gxCanvas::blitstretch(int x, int y, int w, int h, gxCanvas* src, int src_x, int src_y, int src_w, int src_h, bool solid) {
-	x += origin_x - src->handle_x;
-	y += origin_y - src->handle_y;
-	Rect dest_r(x, y, w, h), src_r(src_x, src_y, src_w, src_h);
-	if(!clip(&dest_r, &src_r)) return;
-	if(!::clip(src->clip_rect, &src_r, &dest_r)) return;
-
-	surf->Blt(&dest_r, src->surf, &src_r, DDBLT_WAIT, 0);
 	damage(dest_r);
 }
 
