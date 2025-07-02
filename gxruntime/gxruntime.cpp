@@ -115,9 +115,6 @@ void gxRuntime::closeRuntime(gxRuntime* r) {
 //////////////////////////
 // RUNTIME CONSTRUCTION //
 //////////////////////////
-typedef int(_stdcall* SetAppCompatDataFunc)(int x, int y);
-typedef void (WINAPI* RtlGetVersionFunc) (OSVERSIONINFO*);
-
 gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	hinst(hi), cmd_line(cl), hwnd(hw), curr_driver(0), enum_all(false),
 	pointer_visible(true), input(0), graphics(0), fileSystem(0), use_di(false) {
@@ -135,7 +132,8 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	osinfo.dwOSVersionInfoSize = sizeof(osinfo);
 
 	HMODULE osinfodll = LoadLibraryA("ntdll.dll");
-	if(osinfodll) {
+	if (osinfodll) {
+		typedef void (WINAPI* RtlGetVersionFunc) (OSVERSIONINFO*);
 		RtlGetVersionFunc RtlGetVersion = (RtlGetVersionFunc)GetProcAddress(osinfodll, "RtlGetVersion");
 		if(RtlGetVersion) RtlGetVersion(&osinfo);
 		FreeLibrary(osinfodll);
@@ -145,11 +143,14 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	statex.dwLength = sizeof(statex);
 	GlobalMemoryStatusEx(&statex);
 
-	HMODULE ddraw = LoadLibraryA("ddraw.dll");
-	if(ddraw) {
-		SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)GetProcAddress(ddraw, "SetAppCompatData");
-		if(SetAppCompatData) SetAppCompatData(12, 0);
-		FreeLibrary(ddraw);
+	if (osinfo.dwMajorVersion == 6 && (osinfo.dwMinorVersion == 2 || osinfo.dwMinorVersion == 3)) {
+		HMODULE ddraw = LoadLibraryA("ddraw.dll");
+		if (ddraw) {
+			typedef HRESULT (WINAPI* SetAppCompatDataFunc)(DWORD, DWORD);
+			SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)GetProcAddress(ddraw, "SetAppCompatData");
+			if (SetAppCompatData) SetAppCompatData(12, 0);
+			FreeLibrary(ddraw);
+		}
 	}
 
 	memset(&devmode, 0, sizeof(devmode));
@@ -1253,7 +1254,7 @@ std::string gxRuntime::systemProperty(const std::string& p) {
 		}
 	}
 	else if(t == "appfile") {
-		if(GetModuleFileName(0, buff, MAX_PATH)) return buff; //without toDir, so we don't have the slash at the end
+		if(GetModuleFileName(0, buff, MAX_PATH)) return buff;
 	}
 	else if(t == "apphwnd") {
 		return itoa((int)hwnd);
