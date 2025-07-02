@@ -5,6 +5,8 @@
 
 #include "../gxruntime/gxutf8.h"
 
+#include "../freeimage/freeimage.h"
+
 struct gxRuntime::GfxMode {
 	DDSURFACEDESC2 desc;
 };
@@ -122,6 +124,8 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 
 	CoInitialize(0);
 
+	FreeImage_Initialise(true);
+
 	enumGfx();
 	TIMECAPS tc;
 	timeGetDevCaps(&tc, sizeof(tc));
@@ -163,6 +167,8 @@ gxRuntime::~gxRuntime() {
 	denumGfx();
 	DestroyWindow(hwnd);
 	UnregisterClass("Blitz Runtime Class", hinst);
+
+	FreeImage_DeInitialise();
 
 	CoUninitialize();
 }
