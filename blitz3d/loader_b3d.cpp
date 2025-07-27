@@ -123,7 +123,7 @@ static void readBrushes() {
 		float shi = readFloat();
 		int blend = readInt();
 		int fx = readInt();
-		readIntArray(tex_id, n_texs);
+		readIntArray(tex_id, std::clamp(n_texs, 0, 8));
 
 		Brush bru;
 
@@ -160,7 +160,7 @@ static int readVertices() {
 			readColor(&t.color);
 		}
 		for (int k = 0; k < tc_sets; ++k) {
-			readFloatArray(tc, tc_size);
+			readFloatArray(tc, std::clamp(tc_size, 0, 4));
 			if (k < 2) memcpy(t.tex_coords[k], tc, 8);
 		}
 		MeshLoader::addVertex(t);

@@ -6,7 +6,8 @@
 #include "entity.h"
 #include "animator.h"
 #include "collision.h"
-#include "../bbruntime/bbaudio.h"
+
+class gxSound;
 
 struct ObjCollision {
 	Object* with;
@@ -40,7 +41,7 @@ public:
 	void setAnimation(const Animation& t) { anim = t; }
 	void setAnimator(Animator* t);
 
-	gxChannel* emitSound(gxAudio::Sound* sound);
+	gxChannel* emitSound(gxSound* sound);
 
 	//overridables!
 	virtual bool collide(const Line& line, float radius, ::Collision* curr_coll, const Transform& t) { return false; }

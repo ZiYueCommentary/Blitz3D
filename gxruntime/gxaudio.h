@@ -1,78 +1,47 @@
 #ifndef GXAUDIO_H
 #define GXAUDIO_H
 
-#include "gxchannel.h"
-#include "../soloud/soloud.h"
-#include "../soloud/soloud_wavstream.h"
+#include <string>
 
-typedef unsigned int channel_handle;
+#include "gxsound.h"
 
-class gxAudio
-{
+class gxRuntime;
+struct FSOUND_SAMPLE;
+
+class gxAudio {
 public:
+	gxRuntime* runtime;
 
-    struct Sound
-    {
-        SoLoud::AudioSource* source;
-        float volume = 1.0f;
-        float pan = 0.0f;
-        float pitch = 0.0f;
+	gxAudio(gxRuntime* runtime);
+	~gxAudio();
 
-        ~Sound() { delete source; }
-    };
+	gxChannel* play(FSOUND_SAMPLE* sample);
+	gxChannel* play3d(FSOUND_SAMPLE* sample, const float pos[3], const float vel[3]);
 
-    struct SoundChannel : gxChannel
-    {
-        const gxAudio* gx_audio;
-        channel_handle handle;
-
-        SoundChannel(const gxAudio& gx_audio, const channel_handle handle) : gx_audio(&gx_audio), handle(handle) { }
-
-        ~SoundChannel() override;
-
-        void stop() override;
-
-        void setPaused(bool paused) override;
-        void setPitch(float pitch) override;
-        void setVolume(float volume) override;
-        void setPan(float pan) override;
-        void setLooping(bool looping) override;
-        void set3d(float x, float y, float z, float vx, float vy, float vz) override;
-
-        bool getPaused() override;
-        float getPitch() override;
-        float getVolume() override;
-        float getPan() override;
-        bool getLooping() override;
-
-        bool isPlaying() override;
-    };
-
-    struct StreamChannel : SoundChannel
-    {
-        SoLoud::WavStream* stream;
-
-        StreamChannel(const gxAudio& gx_audio, SoLoud::WavStream* stream, const channel_handle handle) : SoundChannel(gx_audio, handle), stream(stream) { }
-
-        ~StreamChannel() override;
-    };
-
-    SoLoud::Soloud* soloud = nullptr;
-
-    gxAudio();
-    ~gxAudio();
-
-    void set3dListenerConfig(float roll, float dopp, float dist);
-    void set3dListener(float x, float y, float z, float kx, float ky, float kz, float jx, float jy, float jz, float vx, float vy, float vz);
-    Sound* loadSound(const char* path);
-    SoundChannel* playSound(const Sound& sound) const;
-    SoundChannel* play3dSound(const Sound& sound, float x, float y, float z, float vx, float vy, float vz) const;
-    StreamChannel* playMusic(const char* path, float volume = 1.0f) const;
+	void pause();
+	void resume();
 
 private:
-    float rolloff_factor = 1.0f;
-    float doppler_factor = 1.0f;
-    float distance_factor = 1.0f;
+
+	/***** GX INTERFACE *****/
+public:
+	enum {
+		CD_MODE_ONCE = 1, CD_MODE_LOOP, CD_MODE_ALL
+	};
+
+	gxSound* loadSound(const std::string& filename, bool use_3d);
+	gxSound* verifySound(gxSound* sound);
+	void freeSound(gxSound* sound);
+
+	void setPaused(bool paused);	//master pause
+	void setVolume(float volume);	//master volume
+
+	void set3dOptions(float roll, float dopp, float dist);
+
+	void set3dListener(const float pos[3], const float vel[3], const float forward[3], const float up[3]);
+
+	gxChannel* playCDTrack(int track, int mode);
+	gxChannel* playFile(const std::string& filename, bool use_3d, int mode);
 };
 
 #endif

@@ -217,6 +217,9 @@ static const char* loadUserLib(const std::string& userlib) {
 
 			userFuncs.push_back(UserFunc(lower_id, id, lib));
 		}
+		else {
+			return MultiLang::missing_colon_userlib;
+		}
 	}
 	return 0;
 }
