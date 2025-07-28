@@ -669,6 +669,19 @@ void gxRuntime::setTitle(const std::string& t, const std::string& e) {
 	SetWindowTextW(hwnd, UTF8::convertToUtf16(app_title).c_str());
 }
 
+///////////////
+// APP ICON  //
+///////////////
+
+void gxRuntime::setICON(const std::string& f)
+{
+	HICON hIcon = (HICON)LoadImageA(hinst,f.c_str(), IMAGE_ICON, 0, 0, LR_DEFAULTCOLOR | LR_LOADFROMFILE);
+
+	SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+	SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+	
+}
+
 //////////////////
 // GETMILLISECS //
 //////////////////
