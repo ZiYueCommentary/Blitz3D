@@ -28,6 +28,12 @@ void bbAppTitle(BBStr* ti, BBStr* cp) {
     delete ti; delete cp;
 }
 
+void bbAppICON(BBStr* f)
+{
+    gx_runtime->setICON(*f);
+    delete f;
+}
+
 void bbRuntimeError(BBStr* str) {
     std::string t = *str; delete str;
     if (t.size() > 255) t[255] = 0;
@@ -236,6 +242,7 @@ void bbruntime_link(void (*rtSym)(const char* sym, void* pc)) {
     rtSym("End", bbEnd);
     rtSym("Stop", bbStop);
     rtSym("AppTitle$title$close_prompt=\"\"", bbAppTitle);
+    rtSym("AppICON$filename", bbAppICON);
     rtSym("RuntimeError$message", bbRuntimeError);
     rtSym("MemoryAccessViolation", bbMemoryAccessViolation);
     rtSym("InitErrorMsgs%number%hasMacro=0", bbInitErrorMsgs);

@@ -102,6 +102,7 @@ public:
 
 	bool execute(const std::string& cmd);
 	void setTitle(const std::string& title, const std::string& close);
+	void setICON(const std::string& filename);
 	int  getMilliSecs();
 	void setPointerVisible(bool vis);
 
