@@ -6,6 +6,7 @@
 #include <vector>
 #include <intrin.h>
 
+#include "gxaudio.h"
 #include "gxinput.h"
 #include "gxgraphics.h"
 #include "gxfilesystem.h"
@@ -20,6 +21,7 @@ public:
 	HWND hwnd;
 	HINSTANCE hinst;
 
+	gxAudio* audio;
 	gxInput* input;
 	gxGraphics* graphics;
 	gxFileSystem* fileSystem;
@@ -122,6 +124,9 @@ public:
 	void graphicsModeInfo(int driver, int mode, int* w, int* h, int* d, int* caps);
 
 	void windowedModeInfo(int* caps);
+
+	gxAudio* openAudio(int flags);
+	void closeAudio(gxAudio* audio);
 
 	gxInput* openInput(int flags);
 	void closeInput(gxInput* input);
