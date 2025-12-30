@@ -77,10 +77,10 @@ static void adjustTexSize(int* width, int* height, IDirect3DDevice7* dir3dDev) {
 		}
 	}
 	//clamp size
-	if((min = ddDesc.dwMinTextureWidth) && w < min) w = min;
-	if((min = ddDesc.dwMinTextureHeight) && h < min) h = min;
-	if((max = ddDesc.dwMaxTextureWidth) && w > max) w = max;
-	if((max = ddDesc.dwMaxTextureHeight) && h > max) h = max;
+	//if((min = ddDesc.dwMinTextureWidth) && w < min) w = min;
+	//if((min = ddDesc.dwMinTextureHeight) && h < min) h = min;
+	//if((max = ddDesc.dwMaxTextureWidth) && w > max) w = max;
+	//if((max = ddDesc.dwMaxTextureHeight) && h > max) h = max;
 
 	*width = w; *height = h;
 }
