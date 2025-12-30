@@ -1,3 +1,5 @@
+#include "std.h"
 #include "gxchannel.h"
 
-gxChannel::~gxChannel() = default;
+gxChannel::~gxChannel() {
+}

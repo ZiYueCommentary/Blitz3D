@@ -6,7 +6,7 @@
 
 extern gxRuntime* gx_runtime;
 
-#include "..\freeimage\freeimage.h"
+#include "../freeimage/freeimage.h"
 
 static AsmCoder asm_coder;
 
@@ -452,7 +452,6 @@ ddSurf* ddUtil::loadSurface(const std::string& f, int flags, gxGraphics* gfx) {
 		return surf;
 	}
 
-	FreeImage_Initialise(true);
 	FREE_IMAGE_FORMAT fmt = FreeImage_GetFileType(f.c_str(), f.size());
 	if(fmt == FIF_UNKNOWN) {
 		int n = f.find("."); if(n == std::string::npos) return 0;
@@ -512,6 +511,5 @@ ddSurf* ddUtil::loadSurface(const std::string& f, int flags, gxGraphics* gfx) {
 
 	src->Release();
 	FreeImage_Unload(dib);
-	FreeImage_DeInitialise();
 	return dest;
 }

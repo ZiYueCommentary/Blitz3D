@@ -1,9 +1,10 @@
 #include "std.h"
 #include "gxruntime.h"
 #include "zmouse.h"
-#include "../bbruntime/bbaudio.h"
 
 #include "../gxruntime/gxutf8.h"
+
+#include "../freeimage/freeimage.h"
 
 struct gxRuntime::GfxMode {
 	DDSURFACEDESC2 desc;
@@ -113,14 +114,13 @@ void gxRuntime::closeRuntime(gxRuntime* r) {
 //////////////////////////
 // RUNTIME CONSTRUCTION //
 //////////////////////////
-typedef int(_stdcall* SetAppCompatDataFunc)(int x, int y);
-typedef void (WINAPI* RtlGetVersionFunc) (OSVERSIONINFO*);
-
 gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	hinst(hi), cmd_line(cl), hwnd(hw), curr_driver(0), enum_all(false),
-	pointer_visible(true), input(0), graphics(0), fileSystem(0), use_di(false) {
+	pointer_visible(true), audio(0), input(0), graphics(0), fileSystem(0), use_di(false) {
 
 	CoInitialize(0);
+
+	FreeImage_Initialise(true);
 
 	enumGfx();
 	TIMECAPS tc;
@@ -131,7 +131,8 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	osinfo.dwOSVersionInfoSize = sizeof(osinfo);
 
 	HMODULE osinfodll = LoadLibraryA("ntdll.dll");
-	if(osinfodll) {
+	if (osinfodll) {
+		typedef void (WINAPI* RtlGetVersionFunc) (OSVERSIONINFO*);
 		RtlGetVersionFunc RtlGetVersion = (RtlGetVersionFunc)GetProcAddress(osinfodll, "RtlGetVersion");
 		if(RtlGetVersion) RtlGetVersion(&osinfo);
 		FreeLibrary(osinfodll);
@@ -141,11 +142,14 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	statex.dwLength = sizeof(statex);
 	GlobalMemoryStatusEx(&statex);
 
-	HMODULE ddraw = LoadLibraryA("ddraw.dll");
-	if(ddraw) {
-		SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)GetProcAddress(ddraw, "SetAppCompatData");
-		if(SetAppCompatData) SetAppCompatData(12, 0);
-		FreeLibrary(ddraw);
+	if (osinfo.dwMajorVersion == 6 && (osinfo.dwMinorVersion == 2 || osinfo.dwMinorVersion == 3)) {
+		HMODULE ddraw = LoadLibraryA("ddraw.dll");
+		if (ddraw) {
+			typedef HRESULT (WINAPI* SetAppCompatDataFunc)(DWORD, DWORD);
+			SetAppCompatDataFunc SetAppCompatData = (SetAppCompatDataFunc)GetProcAddress(ddraw, "SetAppCompatData");
+			if (SetAppCompatData) SetAppCompatData(12, 0);
+			FreeLibrary(ddraw);
+		}
 	}
 
 	memset(&devmode, 0, sizeof(devmode));
@@ -155,6 +159,7 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 
 gxRuntime::~gxRuntime() {
 	while(timers.size()) freeTimer(*timers.begin());
+	if(audio) closeAudio(audio);
 	if(graphics) closeGraphics(graphics);
 	if(input) closeInput(input);
 	TIMECAPS tc;
@@ -164,15 +169,17 @@ gxRuntime::~gxRuntime() {
 	DestroyWindow(hwnd);
 	UnregisterClass("Blitz Runtime Class", hinst);
 
+	FreeImage_DeInitialise();
+
 	CoUninitialize();
 }
 
 void gxRuntime::pauseAudio() {
-
+	if(audio) audio->pause();
 }
 
 void gxRuntime::resumeAudio() {
-
+	if(audio) audio->resume();
 }
 
 void gxRuntime::restoreGraphics() {
@@ -709,6 +716,31 @@ void gxRuntime::setPointerVisible(bool vis) {
 }
 
 /////////////////
+// AUDIO SETUP //
+/////////////////
+gxAudio* gxRuntime::openAudio(int flags) {
+	if(audio) return 0;
+
+	int f_flags =
+		FSOUND_INIT_GLOBALFOCUS |
+		FSOUND_INIT_USEDEFAULTMIDISYNTH;
+
+	FSOUND_SetHWND(hwnd);
+	if(!FSOUND_Init(44100, 1024, f_flags)) {
+		return 0;
+	}
+
+	audio = new gxAudio(this);
+	return audio;
+}
+
+void gxRuntime::closeAudio(gxAudio* a) {
+	if(!audio || audio != a) return;
+	delete audio;
+	audio = 0;
+}
+
+/////////////////
 // INPUT SETUP //
 /////////////////
 gxInput* gxRuntime::openInput(int flags) {
@@ -811,7 +843,7 @@ gxGraphics* gxRuntime::openWindowedGraphics(int w, int h, int d, bool d3d) {
 			//create clipper
 			IDirectDrawClipper* cp;
 			if(dd->CreateClipper(0, &cp, 0) >= 0) {
-				//attach clipper
+				//attach clipper 
 				if(ps->SetClipper(cp) >= 0) {
 					//set clipper HWND
 					if(cp->SetHWnd(0, hwnd) >= 0) {
@@ -1247,7 +1279,7 @@ std::string gxRuntime::systemProperty(const std::string& p) {
 		}
 	}
 	else if(t == "appfile") {
-		if(GetModuleFileName(0, buff, MAX_PATH)) return buff; //without toDir, so we don't have the slash at the end
+		if(GetModuleFileName(0, buff, MAX_PATH)) return buff;
 	}
 	else if(t == "apphwnd") {
 		return itoa((int)hwnd);
