@@ -142,6 +142,10 @@ gxRuntime::gxRuntime(HINSTANCE hi, const std::string& cl, HWND hw) :
 	statex.dwLength = sizeof(statex);
 	GlobalMemoryStatusEx(&statex);
 
+	memset(&pmc, 0, sizeof(pmc));
+	pmc.cb = sizeof(pmc);
+	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
+
 	if (osinfo.dwMajorVersion == 6 && (osinfo.dwMinorVersion == 2 || osinfo.dwMinorVersion == 3)) {
 		HMODULE ddraw = LoadLibraryA("ddraw.dll");
 		if (ddraw) {
@@ -680,24 +684,32 @@ int gxRuntime::getMilliSecs() {
 // MEMORYINFO //
 ////////////////
 int gxRuntime::getMemoryLoad() {
-	GlobalMemoryStatusEx(&statex);
 	return statex.dwMemoryLoad;
 }
 
 int gxRuntime::getTotalPhys() {
-	return statex.ullTotalPhys / 1024;
+	return statex.ullTotalPhys >> 20;
 }
 
 int gxRuntime::getAvailPhys() {
-	return statex.ullAvailPhys / 1024;
+	return statex.ullAvailPhys >> 20;
 }
 
 int gxRuntime::getTotalVirtual() {
-	return statex.ullTotalVirtual / 1024;
+	return statex.ullTotalVirtual >> 20;
 }
 
 int gxRuntime::getAvailVirtual() {
-	return statex.ullAvailVirtual / 1024;
+	return statex.ullAvailVirtual >> 20;
+}
+
+int gxRuntime::getCurrPhys() {
+	return pmc.WorkingSetSize >> 20;
+}
+
+void gxRuntime::updateMemoryStats() {
+	GlobalMemoryStatusEx(&statex);
+	GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc));
 }
 
 /////////////////////

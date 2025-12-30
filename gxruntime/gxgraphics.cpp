@@ -156,13 +156,13 @@ int gxGraphics::getScanLine()const {
 int gxGraphics::getTotalVidmem()const {
 	DDCAPS caps = { sizeof(caps) };
 	dirDraw->GetCaps(&caps, 0);
-	return caps.dwVidMemTotal / 1024;
+	return caps.dwVidMemTotal >> 20;
 }
 
 int gxGraphics::getAvailVidmem()const {
 	DDCAPS caps = { sizeof(caps) };
 	dirDraw->GetCaps(&caps, 0);
-	return caps.dwVidMemFree / 1024;
+	return caps.dwVidMemFree >> 20;
 }
 
 gxMovie* gxGraphics::openMovie(const std::string& file, int flags) {

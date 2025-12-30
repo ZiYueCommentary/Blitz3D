@@ -2,6 +2,7 @@
 #define GXRUNTIME_H
 
 #include <Windows.h>
+#include <psapi.h>
 #include <string>
 #include <vector>
 #include <intrin.h>
@@ -153,6 +154,7 @@ public:
 
 	OSVERSIONINFO osinfo;
 	MEMORYSTATUSEX statex;
+	PROCESS_MEMORY_COUNTERS pmc;
 	DEVMODE devmode;
 
 	int getMemoryLoad();
@@ -160,6 +162,8 @@ public:
 	int getAvailPhys();
 	int getTotalVirtual();
 	int getAvailVirtual();
+	int getCurrPhys();
+	void updateMemoryStats();
 };
 
 #endif
