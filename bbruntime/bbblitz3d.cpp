@@ -382,6 +382,14 @@ int bbAvailVirtual() {
 	return gx_runtime->getAvailVirtual();
 }
 
+int bbCurrPhys() {
+	return gx_runtime->getCurrPhys();
+}
+
+void bbUpdateMemoryStats() {
+	return gx_runtime->updateMemoryStats();
+}
+
 //////////////////////
 // TEXTURE COMMANDS //
 //////////////////////
@@ -2351,6 +2359,8 @@ void blitz3d_link(void (*rtSym)(const char* sym, void* pc)) {
 	rtSym("%AvailPhys", bbAvailPhys);
 	rtSym("%TotalVirtual", bbTotalVirtual);
 	rtSym("%AvailVirtual", bbAvailVirtual);
+	rtSym("%CurrPhys", bbCurrPhys);
+	rtSym("UpdateMemoryStats", bbUpdateMemoryStats);
 
 	rtSym("%RunningOnWine", bbRunningUnderWine);
 }
